@@ -1,6 +1,6 @@
 module Parser (parse) where
 
-import Tokenizer (tokenize)
+import Tokeniser (tokenise)
 
 -- | Parse the tokenized input into an AST
 parse :: [String] -> [String]

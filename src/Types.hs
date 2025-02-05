@@ -1,6 +1,6 @@
 module Types (Expr) where
 
-type Tokenizer a = String -> Either Error ([Token], a)
+type Tokeniser a = String -> Either Error ([Token], a)
 type Parser a = [Token] -> Either Error ([Token], a)
 type Evaluator a = a -> Either Error a
 
@@ -46,12 +46,6 @@ type Block = [Stmt]
 
 data Stmt = Asgn String Expr
           | While Expr Block
-          deriving (Eq, Show)
-
-data Expr = Add Expr Expr
-          | Mul Expr Expr
-          | Val Int
-          | Var String
           deriving (Eq, Show)
 
 data Token = Eq | Plus | Minus | Times | LParen | RParen | LBrace | RBrace

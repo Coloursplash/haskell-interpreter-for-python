@@ -1,4 +1,4 @@
-module Tokenizer (tokenize) where
+module Tokeniser (tokenise) where
 
 -- | Tokenizes the input string into a list of tokens
 tokenize :: String -> [String]

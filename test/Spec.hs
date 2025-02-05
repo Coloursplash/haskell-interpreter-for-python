@@ -1,5 +1,5 @@
 import Test.Tasty (defaultMain, TestTree, testGroup)
-import TokenizerTests (tokenizerTests)
+import TokeniserTests (tokeniserTests)
 import ParserTests (parserTests)
 import EvaluatorTests (evaluatorTests)
 
@@ -8,7 +8,7 @@ main = defaultMain tests
 
 tests :: TestTree
 tests = testGroup "Python Interpreter Tests"
-  [ testGroup "Tokenizer" tokenizerTests
+  [ testGroup "Tokenizer" tokeniserTests
   , testGroup "Parser" parserTests
   , testGroup "Evaluator" evaluatorTests
   ]

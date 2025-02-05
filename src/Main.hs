@@ -1,6 +1,6 @@
 module Main where
 
-import Tokenizer (tokenize)
+import Tokeniser (tokenise)
 import Parser (parse)
 import Evaluator (evaluate)
 

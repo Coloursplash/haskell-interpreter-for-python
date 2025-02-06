@@ -2,7 +2,7 @@ module TokeniserTests (tokeniserTests) where
 
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=), Assertion)
-import Tokenizer (tokenize)  -- Assuming your Tokenizer module exists
+import Tokeniser (tokenise)  -- Assuming your Tokeniser module exists
 import TestUtils (numberedTests)
 
 tokeniserTests :: [TestTree]

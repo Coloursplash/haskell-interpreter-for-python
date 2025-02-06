@@ -3,7 +3,6 @@ module ParserTests (parserTests) where
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=), Assertion)
 import Parser (parse)  -- Assuming your Parser module exists
-import AST (Expr(..))  -- Assuming your AST module exists
 import TestUtils (numberedTests)
 
 parserTests :: [TestTree]

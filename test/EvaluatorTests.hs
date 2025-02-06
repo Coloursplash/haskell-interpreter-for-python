@@ -3,7 +3,6 @@ module EvaluatorTests (evaluatorTests) where
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=), Assertion)
 import Evaluator (evaluate)  -- Assuming your Evaluator module exists
-import AST (Expr(..))  -- Assuming your AST module exists
 import TestUtils (numberedTests)
 
 evaluatorTests :: [TestTree]

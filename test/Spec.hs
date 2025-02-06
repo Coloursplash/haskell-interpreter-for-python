@@ -8,7 +8,7 @@ main = defaultMain tests
 
 tests :: TestTree
 tests = testGroup "Python Interpreter Tests"
-  [ testGroup "Tokenizer" tokeniserTests
+  [ testGroup "Tokeniser" tokeniserTests
   , testGroup "Parser" parserTests
   , testGroup "Evaluator" evaluatorTests
   ]

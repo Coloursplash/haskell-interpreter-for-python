@@ -20,15 +20,16 @@ runInterpreter input = do
 
 
 getFileContents :: FileReader String
-getFileContents "" = return $ Left (FileError (NoFilePathProvided))
+getFileContents "" = return $ Left NoFilePathProvided
 getFileContents filePath = do
-    result <- try (readFile filePath) :: IO (Either IOException String)
-    return $ case result of
-        Left _  -> Left (FileError (FileNotFound filePath))
-        Right contents -> Right (dropWhileEnd isSpace contents)
+  result <- try (readFile filePath) :: IO (Either IOException String)
+  return $ case result of
+    Left _  -> Left (FileNotFound filePath)
+    Right contents -> Right (dropWhileEnd isSpace contents)
 
 main :: IO ()
 main = do
-    args <- getArgs
-    result <- getFileContents (if null args then "" else head args)
-    print result
+  args <- getArgs
+  result <- getFileContents (if null args then "" else head args)
+  print result
+  

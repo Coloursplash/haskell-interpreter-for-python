@@ -1,13 +1,22 @@
-module Types (Expr) where
+module Types where
+import GHC.IO.Exception (IOErrorType(UserError))
 
+type FileReader a = String -> IO (Either Error a)
 type Tokeniser a = String -> Either Error ([Token], a)
 type Parser a = [Token] -> Either Error ([Token], a)
 type Evaluator a = a -> Either Error a
 
 data Error
-    = TokenisationError TokenisationError
+    = FileError FileError
+    | TokenisationError TokenisationError
     | ParsingError ParsingError
     | EvaluationError EvaluationError
+    deriving (Eq, Show)
+
+-- File errors for Main.hs
+data FileError 
+    = NoFilePathProvided
+    | FileNotFound String
     deriving (Eq, Show)
 
 -- Tokenization errors

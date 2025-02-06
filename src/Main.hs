@@ -1,18 +1,34 @@
-module Main where
+module Main (main) where
 
-import Tokeniser (tokenise)
-import Parser (parse)
+import Control.Exception (IOException, try)
+import Data.Char (isSpace)
+import Data.List (dropWhileEnd)
 import Evaluator (evaluate)
+import Parser (parse)
+import System.Environment (getArgs)
+import Tokeniser (tokenise)
+import Types
+import Control.Exception (ErrorCall(ErrorCall))
 
 -- | Main function to run the interpreter
 runInterpreter :: String -> IO ()
 runInterpreter input = do
-    let tokens = tokenize input
-    let ast = parse tokens
-    let result = evaluate ast
-    putStrLn $ "Result: " ++ show result
+  let tokens = tokenise input
+  let ast = parse tokens
+  let result = evaluate ast
+  putStrLn $ "Result: " ++ show result
+
+
+getFileContents :: FileReader String
+getFileContents "" = return $ Left (FileError (NoFilePathProvided))
+getFileContents filePath = do
+    result <- try (readFile filePath) :: IO (Either IOException String)
+    return $ case result of
+        Left _  -> Left (FileError (FileNotFound filePath))
+        Right contents -> Right (dropWhileEnd isSpace contents)
 
 main :: IO ()
 main = do
-    putStrLn "Starting Haskell Python Interpreter"
-    runInterpreter "your input here"
+    args <- getArgs
+    result <- getFileContents (if null args then "" else head args)
+    print result

@@ -1,10 +1,14 @@
 module Types where
 import GHC.IO.Exception (IOErrorType(UserError))
 
-type FileReader a = String -> IO (Either FileError a)
-type Tokeniser = String -> Either TokenisationError [Token]
-type Parser a = [Token] -> Either ParsingError ([Token], a)
-type Evaluator = Block -> Either EvaluationError ()
+type Through a b = a -> Either Error b
+
+data Error
+    = FileError FileError
+    | TokenisationError TokenisationError
+    | ParsingError ParsingError
+    | EvaluationError EvaluationError
+    deriving (Eq, Show)
 
 -- File errors for Main.hs
 data FileError 

@@ -4,5 +4,5 @@ import Tokeniser (tokenise)
 import Types
 
 -- | Parse the tokenised input into an AST
-parse :: Through [String] [String]
-parse tokens = Right tokens
+parse :: Through [Token] Block
+parse tokens = Right [] 

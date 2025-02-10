@@ -1,5 +1,7 @@
 module Tokeniser (tokenise) where
 
+import Types
+
 -- | Tokenises the input string into a list of tokens
-tokenise :: String -> [String]
-tokenise input = words input  -- A simple tokeniser splitting by spaces for now
+tokenise :: Through String [String]
+tokenise input = Right (words input)

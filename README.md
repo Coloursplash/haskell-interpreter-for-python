@@ -51,5 +51,8 @@ Run it with:
 hipy script.py
 ```
 
+## (Python spec)[https://docs.python.org/3/reference/index.html]
+Read the Python specification by following the link above.
+
 ## License
 HIPY is released under the MIT License. See LICENSE for details.

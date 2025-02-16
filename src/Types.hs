@@ -45,21 +45,11 @@ data EvaluationError
   | InvalidOperation String
   deriving (Eq, Show)
 
-type Program = Block
-
-type Block = [Stmt]
-
-data Stmt
-  = Asgn String Expr
-  | While Expr Block
-  | FunctionCall String
-  deriving (Eq, Show)
-
 data Token
-  = Keyword
-  | Operator
-  | Delimiter
-  | Val
+  = Keyword Keyword
+  | Operator Operator
+  | Delimiter Delimiter
+  | Val Val
   | Ident String -- Can be variable or function name
   deriving (Eq, Show)
 
@@ -108,7 +98,7 @@ data Operator
   | Mod
   | At
   | ShiftL
-  | ShitR
+  | ShiftR
   | AndOp
   | Pipe
   | Hat
@@ -150,6 +140,7 @@ data Delimiter
   | ShiftREq
   | ShiftLEq
   | PowEq
+  deriving (Eq, Show)
 
 data Val
   = Int Int
@@ -160,6 +151,16 @@ data Val
   | True
   deriving (Eq, Show)
 
+type Program = Block
+
+type Block = [Stmt]
+
+data Stmt
+  = Asgn String Expr
+  | While Expr Block
+  | FunctionCall String
+  deriving (Eq, Show)
+
 data Expr
   = Num Int
   | Add Expr Expr
@@ -167,4 +168,4 @@ data Expr
   | Mul Expr Expr
   | Div Expr Expr
   | Identifier String
-  deriving (Show, Eq)
+  deriving (Eq, Show)

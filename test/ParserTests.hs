@@ -12,7 +12,3 @@ parserTests =
 parseTests :: [Assertion]
 parseTests =
   []
-
---     parse [Number 1, Plus, Number 2] @?= Add (Literal 1) (Literal 2)
---   , parse [Identifier "x", Mul, Identifier "y"]
---       @?= Mul (Var "x") (Var "y")

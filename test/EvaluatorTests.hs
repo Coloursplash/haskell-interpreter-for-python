@@ -12,6 +12,3 @@ evaluatorTests =
 evaluatorTests' :: [Assertion]
 evaluatorTests' =
   []
-
---     evaluate (Add (Literal 1) (Literal 2)) @?= 3
---   , evaluate (Mul (Literal 3) (Literal 4)) @?= 12

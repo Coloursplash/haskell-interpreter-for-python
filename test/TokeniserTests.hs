@@ -1,8 +1,5 @@
 module TokeniserTests (tokeniserTests) where
 
--- Assuming your Tokeniser module exists
-
-import GHC.TypeError (Assert)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 import TestUtils (numberedTests)
@@ -15,32 +12,27 @@ tokeniserTests =
     testGroup "Tokenising all operators and delimiters" (numberedTests allOpsAndDelimsTests),
     testGroup "Tokenising all keywords" (numberedTests allKeywordsTests),
     testGroup "Tokenisation errors" (numberedTests errorTests),
-    testGroup "Tokenising multiple lines" (numberedTests multiLineTests)
+    testGroup "Tokenising multiple lines" (numberedTests multiLineTests),
+    testGroup "Tokenising short programs" (numberedTests shortProgramTests),
+    testGroup "Tokenising different value types" (numberedTests valueTypeTests),
+    testGroup "Tokenising indentation" (numberedTests indentationTests)
   ]
 
 tokeniseTests :: [Assertion]
 tokeniseTests =
-  [ -- Basic arithmetic expressions
-    tokenise "1 + 2" @?= Right [Val (Int 1), Operator Plus, Val (Int 2)],
+  [ tokenise "1 + 2" @?= Right [Val (Int 1), Operator Plus, Val (Int 2)],
     tokenise "x * y" @?= Right [Ident "x", Operator Times, Ident "y"],
-    -- Function calls
     tokenise "print(42)" @?= Right [Ident "print", Delimiter LParen, Val (Int 42), Delimiter RParen],
-    -- Operators with no spaces
     tokenise "5+-3" @?= Right [Val (Int 5), Operator Plus, Val (Int (-3))],
     tokenise "4**2" @?= Right [Val (Int 4), Operator Pow, Val (Int 2)],
     tokenise "x+=1" @?= Right [Ident "x", Delimiter PlusEq, Val (Int 1)],
     tokenise "y<<=2" @?= Right [Ident "y", Delimiter ShiftLEq, Val (Int 2)],
-    -- Chained operators
     tokenise "a>>=b" @?= Right [Ident "a", Delimiter ShiftREq, Ident "b"],
     tokenise "c||d" @?= Right [Ident "c", Operator Pipe, Operator Pipe, Ident "d"],
-    -- Nested brackets and mixed delimiters
     tokenise "((x))" @?= Right [Delimiter LParen, Delimiter LParen, Ident "x", Delimiter RParen, Delimiter RParen],
     tokenise "{[()]}->x" @?= Right [Delimiter LBrace, Delimiter LSquare, Delimiter LParen, Delimiter RParen, Delimiter RSquare, Delimiter RBrace, Delimiter ArrowRight, Ident "x"],
-    -- Complex expressions with multiple operators
     tokenise "a+=b*c-d/e" @?= Right [Ident "a", Delimiter PlusEq, Ident "b", Operator Times, Ident "c", Operator Minus, Ident "d", Operator DivOp, Ident "e"],
-    -- Edge case: single-character operator followed by a different one
     tokenise "a! = b" @?= Right [Ident "a", Delimiter Exclamation, Delimiter EqDelim, Ident "b"],
-    -- Testing equality and comparison operators
     tokenise "x==y" @?= Right [Ident "x", Operator Eq, Ident "y"],
     tokenise "a!=b" @?= Right [Ident "a", Operator NotEq, Ident "b"],
     tokenise "5>=4" @?= Right [Val (Int 5), Operator GTEq, Val (Int 4)],
@@ -148,7 +140,8 @@ allKeywordsTests =
 
 errorTests :: [Assertion]
 errorTests =
-  [ tokenise "#" @?= Left (TokenisationError (UnrecognizedOperator "#"))
+  [ tokenise "#" @?= Left (TokenisationError (UnrecognizedOperator "#")),
+    tokenise "?" @?= Left (TokenisationError (UnrecognizedOperator "?"))
   ]
 
 multiLineTests :: [Assertion]
@@ -173,5 +166,124 @@ multiLineTests =
           Ident "y",
           Operator Minus,
           Ident "z"
+        ]
+  ]
+
+shortProgramTests :: [Assertion]
+shortProgramTests =
+  [ tokenise "def fib(n):\n    if n <= 1:\n        return n\n    else:\n        return fib(n-1) + fib(n-2)"
+      @?= Right
+        [ Keyword Def,
+          Ident "fib",
+          Delimiter LParen,
+          Ident "n",
+          Delimiter RParen,
+          Delimiter Colon,
+          BlockStart,
+          Keyword If,
+          Ident "n",
+          Operator LTEq,
+          Val (Int 1),
+          Delimiter Colon,
+          BlockStart,
+          Keyword Return,
+          Ident "n",
+          BlockEnd,
+          Keyword Else,
+          Delimiter Colon,
+          BlockStart,
+          Keyword Return,
+          Ident "fib",
+          Delimiter LParen,
+          Ident "n",
+          Operator Minus,
+          Val (Int 1),
+          Delimiter RParen,
+          Operator Plus,
+          Ident "fib",
+          Delimiter LParen,
+          Ident "n",
+          Operator Minus,
+          Val (Int 2),
+          Delimiter RParen,
+          BlockEnd,
+          BlockEnd
+        ],
+    tokenise "for i in range(10):\n    print(i)"
+      @?= Right
+        [ Keyword For,
+          Ident "i",
+          Keyword In,
+          Ident "range",
+          Delimiter LParen,
+          Val (Int 10),
+          Delimiter RParen,
+          Delimiter Colon,
+          BlockStart,
+          Ident "print",
+          Delimiter LParen,
+          Ident "i",
+          Delimiter RParen,
+          BlockEnd
+        ]
+  ]
+
+valueTypeTests :: [Assertion]
+valueTypeTests =
+  [ tokenise "42" @?= Right [Val (Int 42)],
+    tokenise "3.14" @?= Right [Val (Double 3.14)],
+    tokenise "\"Hello, World!\"" @?= Right [Val (Str "Hello, World!")],
+    tokenise "True" @?= Right [Val TrueVal],
+    tokenise "False" @?= Right [Val FalseVal],
+    tokenise "None" @?= Right [Val None]
+  ]
+
+indentationTests :: [Assertion]
+indentationTests =
+  [ tokenise "if True:\n    x = 1\n    y = 2\nelse:\n    z = 3"
+      @?= Right
+        [ Keyword If,
+          Val TrueVal,
+          Delimiter Colon,
+          BlockStart,
+          Ident "x",
+          Delimiter EqDelim,
+          Val (Int 1),
+          Ident "y",
+          Delimiter EqDelim,
+          Val (Int 2),
+          BlockEnd,
+          Keyword Else,
+          Delimiter Colon,
+          BlockStart,
+          Ident "z",
+          Delimiter EqDelim,
+          Val (Int 3),
+          BlockEnd
+        ],
+    tokenise "def foo():\n    if x:\n        y()\n    else:\n        z()"
+      @?= Right
+        [ Keyword Def,
+          Ident "foo",
+          Delimiter LParen,
+          Delimiter RParen,
+          Delimiter Colon,
+          BlockStart,
+          Keyword If,
+          Ident "x",
+          Delimiter Colon,
+          BlockStart,
+          Ident "y",
+          Delimiter LParen,
+          Delimiter RParen,
+          BlockEnd,
+          Keyword Else,
+          Delimiter Colon,
+          BlockStart,
+          Ident "z",
+          Delimiter LParen,
+          Delimiter RParen,
+          BlockEnd,
+          BlockEnd
         ]
   ]

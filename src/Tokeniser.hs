@@ -89,7 +89,11 @@ keywordTable =
     ("try", Keyword Try),
     ("while", Keyword WhileTok),
     ("with", Keyword With),
-    ("yield", Keyword Yield)
+    ("yield", Keyword Yield),
+    -- Cheeky True/False
+    ("True", Val TrueVal),
+    ("None", Val None),
+    ("False", Val FalseVal)
   ]
 
 -- | Tokenises the input string into a list of tokens
@@ -98,9 +102,9 @@ tokenise inp = tokenise' inp (0, 0) []
 
 tokenise' :: String -> (Int, Int) -> Through [Token] [Token]
 tokenise' [] _ toks = Right (reverse toks)
-tokenise' inp@(c:cs) (prevIndent, currIndent) toks
+tokenise' inp@(c : cs) (prevIndent, currIndent) toks
   | isSpace c = handleSpace inp prevIndent currIndent toks
-  | isDigit c || (c == '-' && not (null cs) && isDigit (head cs)) = 
+  | isDigit c || (c == '-' && not (null cs) && isDigit (head cs)) =
       handleNumber inp prevIndent currIndent toks
   | isLetter c = handleIdentifier inp prevIndent currIndent toks
   | otherwise = handleOperator inp prevIndent currIndent toks
@@ -108,9 +112,10 @@ tokenise' inp@(c:cs) (prevIndent, currIndent) toks
 handleSpace :: String -> Int -> Int -> Through [Token] [Token]
 handleSpace inp prevIndent currIndent toks =
   let (spaces, rest) = span isSpace inp
-      newIndent = if '\n' `elem` spaces
-                    then length $ takeWhile (== ' ') $ dropWhile (== '\n') $ reverse spaces
-                    else currIndent
+      newIndent =
+        if '\n' `elem` spaces
+          then length $ takeWhile (== ' ') $ dropWhile (== '\n') $ reverse spaces
+          else currIndent
    in if '\n' `elem` spaces
         then handleIndent newIndent prevIndent rest toks
         else tokenise' rest (prevIndent, newIndent) toks
@@ -118,9 +123,10 @@ handleSpace inp prevIndent currIndent toks =
 handleNumber :: String -> Int -> Int -> Through [Token] [Token]
 handleNumber inp prevIndent currIndent toks =
   let (numStr, rest) = span (\x -> isDigit x || x == '.' || x == '-') inp
-      numVal = if '.' `elem` numStr
-                 then Val (Double (read numStr))
-                 else Val (Int (read numStr))
+      numVal =
+        if '.' `elem` numStr
+          then Val (Double (read numStr))
+          else Val (Int (read numStr))
    in tokenise' rest (prevIndent, currIndent) (numVal : toks)
 
 handleIdentifier :: String -> Int -> Int -> Through [Token] [Token]
@@ -137,20 +143,19 @@ handleOperator inp prevIndent currIndent toks =
         Just token -> tokenise' rest (prevIndent, currIndent) (token : toks)
         Nothing -> Left (TokenisationError (UnrecognizedOperator op))
 
-
 handleIndent :: Int -> Int -> String -> Through [Token] [Token]
 handleIndent newIndent prevIndent rest toks
   | newIndent > prevIndent = tokenise' rest (prevIndent, newIndent) (BlockStart : toks)
-  | newIndent < prevIndent = 
+  | newIndent < prevIndent =
       let blockEnds = replicate ((prevIndent - newIndent) `div` 4) BlockEnd
        in tokenise' rest (prevIndent, newIndent) (blockEnds ++ toks)
   | otherwise = tokenise' rest (prevIndent, newIndent) toks
-
 
 extractOperator :: String -> (String, String)
 extractOperator s =
   let validOps = filter (`isPrefixOf` s) (map fst opDelimTable)
    in case validOps of
-        [] -> ([head s], tail s)  -- No match, take single char
-        ops -> let best = maximumBy (comparing length) ops
-                in (best, drop (length best) s)
+        [] -> ([head s], tail s) -- No match, take single char
+        ops ->
+          let best = maximumBy (comparing length) ops
+           in (best, drop (length best) s)

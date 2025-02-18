@@ -231,11 +231,11 @@ shortProgramTests =
 valueTypeTests :: [Assertion]
 valueTypeTests =
   [ tokenise "42" @?= Right [Val (Int 42)],
-    tokenise "3.14" @?= Right [Val (Double 3.14)],
+    tokenise "3.14" @?= Right [Val (Float 3.14)],
     tokenise "\"Hello, World!\"" @?= Right [Val (Str "Hello, World!")],
     tokenise "True" @?= Right [Val TrueVal],
     tokenise "False" @?= Right [Val FalseVal],
-    tokenise "None" @?= Right [Val None]
+    tokenise "None" @?= Right [Val NoneVal]
   ]
 
 indentationTests :: [Assertion]

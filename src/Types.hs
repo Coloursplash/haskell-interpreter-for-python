@@ -147,11 +147,11 @@ data Delimiter
 
 data Val
   = Int Int
-  | Double Double
+  | Float Float
   | Str String
   | Bool Bool
   | FalseVal
-  | None
+  | NoneVal
   | TrueVal
   deriving (Eq, Show)
 
@@ -162,6 +162,7 @@ type Block = [Stmt]
 data Stmt
   = Asgn String Expr
   | While Expr Block
+  | Cond Expr Block Block
   | FunctionCall String
   deriving (Eq, Show)
 

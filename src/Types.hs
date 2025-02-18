@@ -147,6 +147,7 @@ data Delimiter
 
 data Val
   = Int Int
+  | Double Double
   | Str String
   | Bool Bool
   | FalseVal

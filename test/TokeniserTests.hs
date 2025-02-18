@@ -9,7 +9,11 @@ import Types
 
 tokeniserTests :: [TestTree]
 tokeniserTests =
-  [testGroup "Tokenizing simple expressions" (numberedTests tokeniseTests)]
+  [
+    testGroup "Tokenizing simple expressions" (numberedTests tokeniseTests),
+    testGroup "Tokenizing all operators and delimiters" (numberedTests allOpsAndDelimsTests),
+    testGroup "Tokenizing all keywords" (numberedTests allKeywordsTests)
+  ]
 
 tokeniseTests :: [Assertion]
 tokeniseTests =
@@ -38,4 +42,43 @@ tokeniseTests =
     tokenise "a!=b" @?= Right [Ident "a", Operator NotEq, Ident "b"],
     tokenise "5>=4" @?= Right [Val (Int 5), Operator GTEq, Val (Int 4)],
     tokenise "3<=2" @?= Right [Val (Int 3), Operator LTEq, Val (Int 2)]
+  ]
+
+allOpsAndDelimsTests :: [Assertion]
+allOpsAndDelimsTests =
+  [
+    tokenise "+ - * ** / // % @ << >> && | ^ ~ := < > <= >= == !=" 
+      @?= Right 
+        [ Operator Plus, Operator Minus, Operator Times, Operator Pow, Operator DivOp, 
+          Operator IntDiv, Operator Mod, Operator At, Operator ShiftL, Operator ShiftR, 
+          Operator AndOp, Operator Pipe, Operator Hat, Operator Tilde, Operator AssignOp, 
+          Operator LessThan, Operator GreaterThan, Operator LTEq, Operator GTEq, 
+          Operator Eq, Operator NotEq ],
+
+    tokenise "( ) [ ] { } , : ! . ; = ->" 
+      @?= Right 
+        [ Delimiter LParen, Delimiter RParen, Delimiter LSquare, Delimiter RSquare, 
+          Delimiter LBrace, Delimiter RBrace, Delimiter Comma, Delimiter Colon, 
+          Delimiter Exclamation, Delimiter Period, Delimiter Semi,
+          Delimiter EqDelim, Delimiter ArrowRight ],
+
+    tokenise "+= -= *= /= //= %= @= &= |= ^= >>= <<= **="
+      @?= Right
+        [ Delimiter PlusEq, Delimiter MinusEq, Delimiter TimesEq, Delimiter DivEq,
+          Delimiter IntDivEq, Delimiter ModEq, Delimiter AtEq, Delimiter AndEq,
+          Delimiter PipeEq, Delimiter HatEq, Delimiter ShiftREq, Delimiter ShiftLEq,
+          Delimiter PowEq ]
+  ]
+
+allKeywordsTests :: [Assertion]
+allKeywordsTests =
+  [ tokenise "and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield"
+      @?= Right
+        [ Keyword And, Keyword As, Keyword Assert, Keyword Async, Keyword Await,
+          Keyword Break, Keyword Class, Keyword Continue, Keyword Def, Keyword Del,
+          Keyword Elif, Keyword Else, Keyword Except, Keyword Finally, Keyword For,
+          Keyword From, Keyword Global, Keyword If, Keyword Import, Keyword In,
+          Keyword Is, Keyword Lambda, Keyword Nonlocal, Keyword Not, Keyword Or,
+          Keyword Pass, Keyword Raise, Keyword Return, Keyword Try, Keyword WhileTok,
+          Keyword With, Keyword Yield ]
   ]

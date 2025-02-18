@@ -39,7 +39,6 @@ opDelimTable =
     ("!", Delimiter Exclamation),
     (".", Delimiter Period),
     (";", Delimiter Semi),
-    ("@", Delimiter AtDelim),
     ("=", Delimiter EqDelim),
     ("->", Delimiter ArrowRight),
     ("+=", Delimiter PlusEq),

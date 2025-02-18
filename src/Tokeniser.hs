@@ -10,7 +10,7 @@ opDelimTable =
   [ ("+", Operator Plus),
     ("-", Operator Minus),
     ("*", Operator Times),
-    ("**", Operator Times),
+    ("**", Operator Pow),
     ("/", Operator DivOp),
     ("//", Operator IntDiv),
     ("%", Operator Mod),
@@ -121,6 +121,6 @@ tokenise inp = tokenise' inp []
     extractOperator s =
       let validOps = filter (`isPrefixOf` s) (map fst opDelimTable)
       in case validOps of
-           [] -> ([head s], tail s)  -- No match, take single char
-           ops -> let best = maximumBy (comparing length) ops
+            [] -> ([head s], tail s)  -- No match, take single char
+            ops -> let best = maximumBy (comparing length) ops
                   in (best, drop (length best) s)

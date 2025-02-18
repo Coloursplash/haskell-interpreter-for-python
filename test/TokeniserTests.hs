@@ -19,8 +19,8 @@ tokeniseTests =
     -- Function calls
     tokenise "print(42)" @?= Right [Ident "print", Delimiter LParen, Val (Int 42), Delimiter RParen],
     -- Operators with no spaces
-    tokenise "5+-3" @?= Right [Val (Int 5), Operator Plus, Operator Minus, Val (Int (-3))],
-    tokenise "4**2" @?= Right [Val (Int 4), Operator Times, Operator Times, Val (Int 2)],
+    tokenise "5+-3" @?= Right [Val (Int 5), Operator Plus, Val (Int (-3))],
+    tokenise "4**2" @?= Right [Val (Int 4), Operator Pow, Val (Int 2)],
     tokenise "x+=1" @?= Right [Ident "x", Delimiter PlusEq, Val (Int 1)],
     tokenise "y<<=2" @?= Right [Ident "y", Delimiter ShiftLEq, Val (Int 2)],
     -- Chained operators

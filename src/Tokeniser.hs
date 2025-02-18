@@ -98,27 +98,24 @@ keywordTable =
 
 -- | Tokenises the input string into a list of tokens
 tokenise :: Through String [Token]
-tokenise inp = tokenise' inp (0, 0) []
+tokenise inp = tokenise' inp (0, 0) True []
 
-tokenise' :: String -> (Int, Int) -> Through [Token] [Token]
-tokenise' [] _ toks = Right (reverse toks)
-tokenise' inp@(c : cs) (prevIndent, currIndent) toks
+tokenise' :: String -> (Int, Int) -> Bool -> Through [Token] [Token]
+tokenise' [] (prevIndent, _) _ toks =
+    Right (reverse (replicate (prevIndent `div` 4) BlockEnd ++ toks))
+tokenise' inp@(c : cs) (prevIndent, currIndent) newLine toks
+  | newLine = handleIndent (length $ takeWhile (== ' ') inp) prevIndent inp toks
   | isSpace c = handleSpace inp prevIndent currIndent toks
-  | isDigit c || (c == '-' && not (null cs) && isDigit (head cs)) =
-      handleNumber inp prevIndent currIndent toks
+  | isDigit c = handleNumber inp prevIndent currIndent toks
+  | c == '-' && not (null cs) && isDigit (head cs) = handleNumber inp prevIndent currIndent toks
   | isLetter c = handleIdentifier inp prevIndent currIndent toks
   | otherwise = handleOperator inp prevIndent currIndent toks
 
 handleSpace :: String -> Int -> Int -> Through [Token] [Token]
 handleSpace inp prevIndent currIndent toks =
   let (spaces, rest) = span isSpace inp
-      newIndent =
-        if '\n' `elem` spaces
-          then length $ takeWhile (== ' ') $ dropWhile (== '\n') $ reverse spaces
-          else currIndent
-   in if '\n' `elem` spaces
-        then handleIndent newIndent prevIndent rest toks
-        else tokenise' rest (prevIndent, newIndent) toks
+      containsNewline = '\n' `elem` spaces
+   in tokenise' rest (prevIndent, currIndent) containsNewline toks
 
 handleNumber :: String -> Int -> Int -> Through [Token] [Token]
 handleNumber inp prevIndent currIndent toks =
@@ -127,29 +124,33 @@ handleNumber inp prevIndent currIndent toks =
         if '.' `elem` numStr
           then Val (Double (read numStr))
           else Val (Int (read numStr))
-   in tokenise' rest (prevIndent, currIndent) (numVal : toks)
+   in tokenise' rest (prevIndent, currIndent) False (numVal : toks)
 
 handleIdentifier :: String -> Int -> Int -> Through [Token] [Token]
 handleIdentifier inp prevIndent currIndent toks =
   let (ident, rest) = span isAlphaNum inp
-   in case lookup ident keywordTable of
-        Just keyword -> tokenise' rest (prevIndent, currIndent) (keyword : toks)
-        Nothing -> tokenise' rest (prevIndent, currIndent) (Ident ident : toks)
+   in case ident of
+        "True" -> tokenise' rest (prevIndent, currIndent) False (Val TrueVal : toks)
+        "False" -> tokenise' rest (prevIndent, currIndent) False (Val FalseVal : toks)
+        "None" -> tokenise' rest (prevIndent, currIndent) False (Val None : toks)
+        _ -> case lookup ident keywordTable of
+               Just keyword -> tokenise' rest (prevIndent, currIndent) False (keyword : toks)
+               Nothing -> tokenise' rest (prevIndent, currIndent) False (Ident ident : toks)
 
 handleOperator :: String -> Int -> Int -> Through [Token] [Token]
 handleOperator inp prevIndent currIndent toks =
   let (op, rest) = extractOperator inp
    in case lookup op opDelimTable of
-        Just token -> tokenise' rest (prevIndent, currIndent) (token : toks)
+        Just token -> tokenise' rest (prevIndent, currIndent) False (token : toks)
         Nothing -> Left (TokenisationError (UnrecognizedOperator op))
 
 handleIndent :: Int -> Int -> String -> Through [Token] [Token]
 handleIndent newIndent prevIndent rest toks
-  | newIndent > prevIndent = tokenise' rest (prevIndent, newIndent) (BlockStart : toks)
+  | newIndent > prevIndent = tokenise' rest (prevIndent, newIndent) False (BlockStart : toks)
   | newIndent < prevIndent =
       let blockEnds = replicate ((prevIndent - newIndent) `div` 4) BlockEnd
-       in tokenise' rest (prevIndent, newIndent) (blockEnds ++ toks)
-  | otherwise = tokenise' rest (prevIndent, newIndent) toks
+       in tokenise' rest (newIndent, newIndent) False (blockEnds ++ toks)
+  | otherwise = tokenise' rest (prevIndent, newIndent) False toks
 
 extractOperator :: String -> (String, String)
 extractOperator s =

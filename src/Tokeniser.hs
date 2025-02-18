@@ -1,7 +1,7 @@
 module Tokeniser (tokenise) where
 
 import Data.Char (isAlphaNum, isDigit, isLetter, isSpace)
-import Data.List (maximumBy, isPrefixOf)
+import Data.List (isPrefixOf, maximumBy)
 import Data.Ord (comparing)
 import Types
 
@@ -94,32 +94,45 @@ keywordTable =
 
 -- | Tokenises the input string into a list of tokens
 tokenise :: Through String [Token]
-tokenise inp = tokenise' inp []
+tokenise inp = tokenise' inp (0, 0) []
   where
-    tokenise' :: String -> Through [Token] [Token]
-    tokenise' [] toks = Right (reverse toks)
-    tokenise' inp@(c : cs) toks
-      | isSpace c = tokenise' cs toks
+    -- tokenise' :: text -> (prevIndent, curIndent) -> Through [Token] [Token]
+    tokenise' :: String -> (Int, Int) -> Through [Token] [Token]
+    tokenise' [] _ toks = Right (reverse toks)
+    tokenise' inp@(c : cs) (prevIndent, currIndent) toks
+      | isSpace c =
+          let (spaces, rest) = span isSpace inp
+              newIndent = length spaces
+           in if c == '\n'
+                then handleIndent newIndent prevIndent rest toks
+                else tokenise' rest (prevIndent, newIndent) toks
       | isDigit c || (c == '-' && not (null cs) && isDigit (head cs)) =
           let (t, cs') = span (\x -> isDigit x || x == '-') inp
-           in tokenise' cs' (Val (Int (read t)) : toks)
+           in tokenise' cs' (prevIndent, currIndent) (Val (Int (read t)) : toks)
       | isLetter c =
           let (t, cs') = span isAlphaNum inp
            in maybe
-                (tokenise' cs' (Ident t : toks))
-                (\op -> tokenise' cs' (op : toks))
+                (tokenise' cs' (prevIndent, currIndent) (Ident t : toks))
+                (\op -> tokenise' cs' (prevIndent, currIndent) (op : toks))
                 (lookup t keywordTable)
       | otherwise =
           let (t, cs') = extractOperator inp
            in maybe
                 (Left (TokenisationError (UnrecognizedOperator t)))
-                (\op -> tokenise' cs' (op : toks))
+                (\op -> tokenise' cs' (prevIndent, currIndent) (op : toks))
                 (lookup t opDelimTable)
+
+    handleIndent :: Int -> Int -> String -> Through [Token] [Token]
+    handleIndent newIndent prevIndent rest toks
+      | newIndent > prevIndent = tokenise' rest (prevIndent, newIndent) (BlockStart : toks)
+      | newIndent < prevIndent = tokenise' rest (prevIndent, newIndent) (BlockEnd : toks)
+      | otherwise = tokenise' rest (prevIndent, newIndent) toks
 
     extractOperator :: String -> (String, String)
     extractOperator s =
       let validOps = filter (`isPrefixOf` s) (map fst opDelimTable)
-      in case validOps of
-            [] -> ([head s], tail s)  -- No match, take single char
-            ops -> let best = maximumBy (comparing length) ops
-                  in (best, drop (length best) s)
+       in case validOps of
+            [] -> ([head s], tail s) -- No match, take single char
+            ops ->
+              let best = maximumBy (comparing length) ops
+               in (best, drop (length best) s)

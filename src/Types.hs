@@ -49,6 +49,9 @@ data Token
   = Keyword Keyword
   | Operator Operator
   | Delimiter Delimiter
+  -- Since python uses indentation for blocks
+  | BlockStart
+  | BlockEnd
   | Val Val
   | Ident String -- Can be variable or function name
   deriving (Eq, Show)

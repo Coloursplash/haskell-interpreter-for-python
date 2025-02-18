@@ -5,4 +5,4 @@ import Types
 
 -- | Parse the tokenised input into an AST
 parse :: Through [Token] Block
-parse tokens = Right [] 
+parse tokens = Right []

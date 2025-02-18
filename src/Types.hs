@@ -18,7 +18,7 @@ data FileError
 -- Tokenization errors
 data TokenisationError
   = BadChar Char
-  | UnrecognizedToken String
+  | UnrecognizedOperator String
   | UnexpectedEOF
   deriving (Eq, Show)
 
@@ -146,9 +146,9 @@ data Val
   = Int Int
   | Str String
   | Bool Bool
-  | False
+  | FalseVal
   | None
-  | True
+  | TrueVal
   deriving (Eq, Show)
 
 type Program = Block

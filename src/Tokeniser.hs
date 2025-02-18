@@ -1,6 +1,8 @@
 module Tokeniser (tokenise) where
 
 import Data.Char (isAlphaNum, isDigit, isLetter, isSpace)
+import Data.List (maximumBy, isPrefixOf)
+import Data.Ord (comparing)
 import Types
 
 opDelimTable :: [(String, Token)]
@@ -28,7 +30,7 @@ opDelimTable =
     ("!=", Operator NotEq),
     ("(", Delimiter LParen),
     (")", Delimiter RParen),
-    ("[", Delimiter RParen),
+    ("[", Delimiter LSquare),
     ("]", Delimiter RSquare),
     ("{", Delimiter LBrace),
     ("}", Delimiter RBrace),
@@ -95,15 +97,12 @@ keywordTable =
 tokenise :: Through String [Token]
 tokenise inp = tokenise' inp []
   where
-    -- making this tail-recursive avoids the need to process the Either
-    -- every time it returns, which ends up being much cleaner at the cost
-    -- of a `reverse`...
     tokenise' :: String -> Through [Token] [Token]
     tokenise' [] toks = Right (reverse toks)
     tokenise' inp@(c : cs) toks
       | isSpace c = tokenise' cs toks
-      | isDigit c =
-          let (t, cs') = span isDigit inp
+      | isDigit c || (c == '-' && not (null cs) && isDigit (head cs)) =
+          let (t, cs') = span (\x -> isDigit x || x == '-') inp
            in tokenise' cs' (Val (Int (read t)) : toks)
       | isLetter c =
           let (t, cs') = span isAlphaNum inp
@@ -112,9 +111,16 @@ tokenise inp = tokenise' inp []
                 (\op -> tokenise' cs' (op : toks))
                 (lookup t keywordTable)
       | otherwise =
-          -- Issues here. e.g. "(())" will pass as one operator to lookup
-          let (t, cs') = break (\c -> isSpace c || isAlphaNum c) inp
+          let (t, cs') = extractOperator inp
            in maybe
-                (Left (TokenisationError (BadChar c)))
+                (Left (TokenisationError (UnrecognizedOperator t)))
                 (\op -> tokenise' cs' (op : toks))
                 (lookup t opDelimTable)
+
+    extractOperator :: String -> (String, String)
+    extractOperator s =
+      let validOps = filter (`isPrefixOf` s) (map fst opDelimTable)
+      in case validOps of
+           [] -> ([head s], tail s)  -- No match, take single char
+           ops -> let best = maximumBy (comparing length) ops
+                  in (best, drop (length best) s)

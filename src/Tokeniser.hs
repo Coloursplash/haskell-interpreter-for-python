@@ -98,12 +98,12 @@ keywordTable =
 
 -- | Tokenises the input string into a list of tokens
 tokenise :: Through String [Token]
-tokenise inp = tokenise' inp 0 0 True []
+tokenise inp = tokenise' inp 0 0 []
 
-tokenise' :: String -> Int -> Int -> Bool -> Through [Token] [Token]
-tokenise' [] prevIndent _ _ toks =
+tokenise' :: String -> Int -> Int -> Through [Token] [Token]
+tokenise' [] prevIndent _ toks =
   Right (reverse (replicate (prevIndent `div` 4) BlockEnd ++ toks))
-tokenise' inp@(c : cs) prevIndent currIndent newLine toks
+tokenise' inp@(c : cs) prevIndent currIndent toks
   | c == '\n' = handleIndent (length $ takeWhile (== ' ') cs) prevIndent cs toks
   | isSpace c = handleSpace inp prevIndent currIndent toks
   | isDigit c = handleNumber inp prevIndent currIndent toks
@@ -114,9 +114,8 @@ tokenise' inp@(c : cs) prevIndent currIndent newLine toks
 
 handleSpace :: String -> Int -> Int -> Through [Token] [Token]
 handleSpace inp prevIndent currIndent toks =
-  let (spaces, rest) = span isSpace inp
-      containsNewline = '\n' `elem` spaces
-   in tokenise' rest prevIndent currIndent containsNewline toks
+  let (_, rest) = span isSpace inp
+   in tokenise' rest prevIndent currIndent toks
 
 handleNumber :: String -> Int -> Int -> Through [Token] [Token]
 handleNumber inp prevIndent currIndent toks =
@@ -125,29 +124,29 @@ handleNumber inp prevIndent currIndent toks =
         if '.' `elem` numStr
           then Val (Float (read numStr))
           else Val (Int (read numStr))
-   in tokenise' rest prevIndent currIndent False (numVal : toks)
+   in tokenise' rest prevIndent currIndent (numVal : toks)
 
 handleIdentifier :: String -> Int -> Int -> Through [Token] [Token]
 handleIdentifier inp prevIndent currIndent toks =
   let (ident, rest) = span isAlphaNum inp
    in case lookup ident keywordTable of
-        Just keyword -> tokenise' rest prevIndent currIndent False (keyword : toks)
-        Nothing -> tokenise' rest prevIndent currIndent False (Ident ident : toks)
+        Just keyword -> tokenise' rest prevIndent currIndent (keyword : toks)
+        Nothing -> tokenise' rest prevIndent currIndent (Ident ident : toks)
 
 handleOperator :: String -> Int -> Int -> Through [Token] [Token]
 handleOperator inp prevIndent currIndent toks =
   let (op, rest) = extractOperator inp
    in case lookup op opDelimTable of
-        Just token -> tokenise' rest prevIndent currIndent False (token : toks)
+        Just token -> tokenise' rest prevIndent currIndent (token : toks)
         Nothing -> Left (TokenisationError (UnrecognizedOperator op))
 
 handleIndent :: Int -> Int -> String -> Through [Token] [Token]
 handleIndent newIndent prevIndent rest toks
-  | newIndent > prevIndent = tokenise' rest newIndent newIndent False (BlockStart : toks)
+  | newIndent > prevIndent = tokenise' rest newIndent newIndent (BlockStart : toks)
   | newIndent < prevIndent =
       let blockEnds = replicate ((prevIndent - newIndent) `div` 4) BlockEnd
-       in tokenise' rest newIndent newIndent False (blockEnds ++ toks)
-  | otherwise = tokenise' rest prevIndent newIndent False toks
+       in tokenise' rest newIndent newIndent (blockEnds ++ toks)
+  | otherwise = tokenise' rest prevIndent newIndent toks
 
 handleString :: String -> Int -> Int -> Through [Token] [Token]
 handleString (closeChar:inp) prevIndent currIndent toks =
@@ -156,7 +155,7 @@ handleString (closeChar:inp) prevIndent currIndent toks =
         then
           Left (TokenisationError (BadChar '\n'))
         else
-          tokenise' rest prevIndent currIndent False (Val (Str string) : toks)
+          tokenise' rest prevIndent currIndent (Val (Str string) : toks)
 
 extractOperator :: String -> (String, String)
 extractOperator s =

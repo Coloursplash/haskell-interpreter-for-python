@@ -104,7 +104,7 @@ tokenise' :: String -> Int -> Int -> Bool -> Through [Token] [Token]
 tokenise' [] prevIndent _ _ toks =
   Right (reverse (replicate (prevIndent `div` 4) BlockEnd ++ toks))
 tokenise' inp@(c : cs) prevIndent currIndent newLine toks
-  | newLine = handleIndent (length $ takeWhile (== ' ') inp) prevIndent inp toks
+  | c == '\n' = handleIndent (length $ takeWhile (== ' ') cs) prevIndent cs toks
   | isSpace c = handleSpace inp prevIndent currIndent toks
   | isDigit c = handleNumber inp prevIndent currIndent toks
   | c == '-' && not (null cs) && isDigit (head cs) = handleNumber inp prevIndent currIndent toks
@@ -143,7 +143,7 @@ handleOperator inp prevIndent currIndent toks =
 
 handleIndent :: Int -> Int -> String -> Through [Token] [Token]
 handleIndent newIndent prevIndent rest toks
-  | newIndent > prevIndent = tokenise' rest prevIndent newIndent False (BlockStart : toks)
+  | newIndent > prevIndent = tokenise' rest newIndent newIndent False (BlockStart : toks)
   | newIndent < prevIndent =
       let blockEnds = replicate ((prevIndent - newIndent) `div` 4) BlockEnd
        in tokenise' rest newIndent newIndent False (blockEnds ++ toks)

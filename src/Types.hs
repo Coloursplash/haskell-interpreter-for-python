@@ -164,10 +164,11 @@ data Stmt
   | While Expr Block
   | Cond Expr Block Block
   | FunctionCall String
+  | ExprStmt Expr
   deriving (Eq, Show)
 
 data Expr
-  = ValExp Int
+  = ValExp Val
   | Add Expr Expr
   | Sub Expr Expr
   | Mul Expr Expr
@@ -181,7 +182,7 @@ data Expr
   | AndExp Expr Expr 
   | Pipe Expr Expr
   | Hat Expr Expr 
-  | Tidle Expr Expr 
+  | Tilde Expr Expr 
   | Assign Expr Expr 
   | LessThan Expr Expr 
   | GreaterThan Expr Expr 

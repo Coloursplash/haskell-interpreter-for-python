@@ -4,6 +4,6 @@ import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (Assertion, testCase)
 
 numberedTests :: [Assertion] -> [TestTree]
-numberedTests tests = zipWith makeTest [1 :: Int ..] tests
+numberedTests = zipWith makeTest [1 :: Int ..]
   where
-    makeTest i assertion = testCase ("Test " ++ show i) assertion
+    makeTest i = testCase ("Test " ++ show i)

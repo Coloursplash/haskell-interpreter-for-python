@@ -146,7 +146,7 @@ data Delimiter
   deriving (Eq, Show)
 
 data Val
-  = Int Int
+  = Int Integer
   | Float Float
   | Str String
   | Bool Bool
@@ -167,7 +167,7 @@ data Stmt
   deriving (Eq, Show)
 
 data Expr
-  = Num Int
+  = ValExp Int
   | Add Expr Expr
   | Sub Expr Expr
   | Mul Expr Expr

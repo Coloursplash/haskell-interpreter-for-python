@@ -142,8 +142,8 @@ handleOperator :: String -> Int -> Int -> Through [Token] [Token]
 handleOperator inp prevIndent currIndent toks =
   let (op, rest) = extractOperator inp
    in case lookup op opDelimTable of
-        Just token -> tokenise' rest prevIndent currIndent (token : toks)
-        Nothing -> Left (TokenisationError (UnrecognizedOperator op))
+      Just token -> tokenise' rest prevIndent currIndent (token : toks)
+      Nothing -> Left (TokenisationError (UnrecognizedOperator op))
 
 handleIndent :: Int -> Int -> String -> Through [Token] [Token]
 handleIndent newIndent prevIndent rest toks

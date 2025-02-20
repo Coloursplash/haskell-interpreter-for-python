@@ -1,9 +1,10 @@
 module Tokeniser (tokenise) where
 
 import Data.Char (isAlphaNum, isDigit, isLetter, isSpace)
-import Data.List (isPrefixOf, maximumBy)
+import Data.List (isPrefixOf, maximumBy, find)
 import Data.Ord (comparing)
 import Types
+import Data.Maybe(isJust, fromJust)
 
 opDelimTable :: [(String, Token)]
 opDelimTable =
@@ -107,14 +108,6 @@ tokenise' inp@(c : cs) prevIndent currIndent toks
   | c == '\n' = handleIndent (length $ takeWhile (== ' ') cs) prevIndent cs toks
   | isSpace c = handleSpace inp prevIndent currIndent toks
   | isDigit c = handleNumber inp prevIndent currIndent toks
-  -- currently doesnt work becuase will take (a-1) as (Ident a),(Val(Int(-1)))
-  -- this could be fixed by tracking the type of the previous token and having
-  -- rules based on that. E.g. after a delimiter it would be subtraction, but
-  -- after an operator it would be a minus sign.
-  -- Doing a temporary fix by enforcing spaces on subtraction in the tests
-  -- e.g. (n-1) would now become (n - 1)
-  -- will need to discuss how best to fix this in person
-  | c == '-' && not (null cs) && isDigit (head cs) = handleNumber inp prevIndent currIndent toks
   | c == '"' || c == '\'' = handleString inp prevIndent currIndent toks
   | isLetter c = handleIdentifier inp prevIndent currIndent toks
   | otherwise = handleOperator inp prevIndent currIndent toks
@@ -125,13 +118,17 @@ handleSpace inp prevIndent currIndent toks =
    in tokenise' rest prevIndent currIndent toks
 
 handleNumber :: String -> Int -> Int -> Through [Token] [Token]
-handleNumber inp prevIndent currIndent toks =
-  let (numStr, rest) = span (\x -> isDigit x || x == '.' || x == '-') inp
-      numVal =
-        if '.' `elem` numStr
-          then Val (Float (read numStr))
-          else Val (Int (read numStr))
-   in tokenise' rest prevIndent currIndent (numVal : toks)
+handleNumber inp prevIndent currIndent toks 
+  | length (filter (== '.') numStr) > 1 = Left (TokenisationError (BadChar '.'))
+  | all (\x -> isDigit x || x == '.') numStr = let 
+       numVal =
+         if '.' `elem` numStr
+           then Val (Float (read numStr))
+           else Val (Int (read numStr))
+    in tokenise' rest prevIndent currIndent (numVal : toks)
+  | otherwise = Left (TokenisationError (BadChar (fromJust $ find (not . (\x -> isDigit x || x == '.')) numStr)))
+   where 
+      (numStr, rest) = break (\x -> isSpace x || x/= '.' && isJust (lookup [x] opDelimTable)) inp
 
 handleIdentifier :: String -> Int -> Int -> Through [Token] [Token]
 handleIdentifier inp prevIndent currIndent toks =

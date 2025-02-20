@@ -95,24 +95,24 @@ data Operator
   = Plus
   | Minus
   | Times
-  | Pow
+  | PowOp
   | DivOp
-  | IntDiv
-  | Mod
-  | At
-  | ShiftL
-  | ShiftR
+  | IntDivOp
+  | ModOp
+  | AtOp
+  | ShiftLOp
+  | ShiftROp
   | AndOp
-  | Pipe
-  | Hat
-  | Tilde
+  | PipeOp
+  | HatOp
+  | TildeOp
   | AssignOp
-  | LessThan
-  | GreaterThan
-  | LTEq
-  | GTEq
-  | Eq
-  | NotEq
+  | LessThanOp
+  | GreaterThanOp
+  | LTEqOp
+  | GTEqOp
+  | EqOp
+  | NotEqOp
   deriving (Eq, Show)
 
 data Delimiter
@@ -171,6 +171,23 @@ data Expr
   | Add Expr Expr
   | Sub Expr Expr
   | Mul Expr Expr
+  | Pow Expr Expr
   | Div Expr Expr
+  | IntDiv Expr Expr 
+  | Mod Expr Expr
+  | At Expr Expr
+  | ShiftL Expr Expr 
+  | ShiftR Expr Expr 
+  | AndExp Expr Expr 
+  | Pipe Expr Expr
+  | Hat Expr Expr 
+  | Tidle Expr Expr 
+  | Assign Expr Expr 
+  | LessThan Expr Expr 
+  | GreaterThan Expr Expr 
+  | LTEq Expr Expr 
+  | GTEq Expr Expr 
+  | Eq Expr Expr 
+  | NotEq Expr Expr 
   | Identifier String
   deriving (Eq, Show)

@@ -110,6 +110,7 @@ tokenise' inp@(c : cs) prevIndent currIndent toks
   | isDigit c = handleNumber inp prevIndent currIndent toks
   | c == '"' || c == '\'' = handleString inp prevIndent currIndent toks
   | isLetter c = handleIdentifier inp prevIndent currIndent toks
+  | c == '#' = handleComment cs prevIndent currIndent toks 
   | otherwise = handleOperator inp prevIndent currIndent toks
 
 handleSpace :: String -> Int -> Int -> Through [Token] [Token]
@@ -169,3 +170,8 @@ extractOperator s =
         ops ->
           let best = maximumBy (comparing length) ops
            in (best, drop (length best) s)
+
+handleComment :: String -> Int -> Int -> Through [Token] [Token]
+handleComment inp prevIndent currIndent toks = 
+  let (_, rest) = span (/= '\n') inp 
+    in tokenise' rest prevIndent currIndent toks

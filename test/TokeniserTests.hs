@@ -36,7 +36,9 @@ tokeniseTests =
     tokenise "x==y" @?= Right [Ident "x", Operator Eq, Ident "y"],
     tokenise "a!=b" @?= Right [Ident "a", Operator NotEq, Ident "b"],
     tokenise "5>=4" @?= Right [Val (Int 5), Operator GTEq, Val (Int 4)],
-    tokenise "3<=2" @?= Right [Val (Int 3), Operator LTEq, Val (Int 2)]
+    tokenise "3<=2" @?= Right [Val (Int 3), Operator LTEq, Val (Int 2)],
+    tokenise "3<=2 # this is a comment" @?= Right [Val (Int 3), Operator LTEq, Val (Int 2)],
+    tokenise "3<=2 # this #is# a# #comment" @?= Right [Val (Int 3), Operator LTEq, Val (Int 2)]
   ]
 
 allOpsAndDelimsTests :: [Assertion]
@@ -140,8 +142,9 @@ allKeywordsTests =
 
 errorTests :: [Assertion]
 errorTests =
-  [ tokenise "#" @?= Left (TokenisationError (UnrecognizedOperator "#")),
-    tokenise "?" @?= Left (TokenisationError (UnrecognizedOperator "?"))
+  [ tokenise "?" @?= Left (TokenisationError (UnrecognizedOperator "?")),
+    tokenise "123a123" @?= Left (TokenisationError (BadChar 'a')),
+    tokenise "123.123.123" @?= Left (TokenisationError (BadChar '.'))
   ]
 
 multiLineTests :: [Assertion]

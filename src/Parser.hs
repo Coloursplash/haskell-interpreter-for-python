@@ -28,6 +28,7 @@ parseBlock toks = parseBlock' [] (BlockStart : toks)
     parseBlock' b (BlockStart:toks) = do 
       (toks',stmt) <- parseStmt toks
       parseBlock' (b ++ [stmt]) toks'
+    parseBlock' b (BlockEnd:toks) = Right (toks,b)
     parseBlock' b toks = Right (toks,b)
 
 
@@ -37,19 +38,45 @@ parseStmt :: Through [Token] ([Token], Stmt)
 parseStmt (Ident x : Operator EqOp : toks) = do 
   (toks',expr) <- parseExpr toks
   Right (toks',Asgn x expr)
+parseStmt (Ident x : Delimiter PlusEq : toks) = do 
+  (toks',expr) <- parseExpr toks 
+  Right (toks', Asgn x (Add (Identifier x) expr))
+parseStmt (Ident x : Delimiter TimesEq : toks) = do 
+  (toks',expr) <- parseExpr toks 
+  Right (toks', Asgn x (Mul (Identifier x) expr))
+parseStmt (Ident x : Delimiter DivEq : toks) = do 
+  (toks',expr) <- parseExpr toks 
+  Right (toks', Asgn x (Div (Identifier x) expr))
+parseStmt (Ident x : Delimiter MinusEq : toks) = do 
+  (toks',expr) <- parseExpr toks 
+  Right (toks', Asgn x (Sub (Identifier x) expr))
 parseStmt (Ident x : Delimiter EqDelim : toks) = do 
   (toks',expr) <- parseExpr toks
   Right (toks',Asgn x expr)
+parseStmt (Ident x : Delimiter LParen : toks) = do 
+    (toks',expr) <- parseExpr toks 
+    toks'' <- checkTok (Delimiter RParen) toks'
+    Right (toks'',FunctionCall x expr)
+-- this can be done much more nicely
 parseStmt (Keyword WhileTok : toks) = do 
   (toks',expr) <- parseExpr toks
-  (toks'',b) <- parseBody toks'
-  Right (toks'',While expr b)
-  where 
-    parseBody (Delimiter LBrace : toks) = do 
-      (toks',b) <- parseBlock toks
-      toks'' <- checkTok (Delimiter RBrace) toks'
-      Right (toks'',b)
-    parseBody tks = Left (ParsingError $ Unexpected (mHead tks) (Delimiter LBrace)) 
+  toks'' <- checkTok (Delimiter Colon) toks'
+  toks''' <- checkTok BlockStart toks''
+  (toks'''',b) <- parseBlock toks'''
+  Right (toks'''',While expr b)
+-- currently assuming there will always be an else... clause
+-- when implemented 'elif's will be another if ... else statement 
+-- that will be added to the else block
+parseStmt (Keyword If : toks1) = do 
+    (toks2,expr) <- parseExpr toks1
+    toks3 <- checkTok (Delimiter Colon) toks2
+    toks4 <- checkTok BlockStart toks3
+    (toks5,block1) <- parseBlock toks4
+    toks6 <- checkTok (Keyword Else) toks5
+    toks7 <- checkTok (Delimiter Colon) toks6
+    toks8 <- checkTok BlockStart toks7
+    (toks9,block2) <- parseBlock toks8
+    Right (toks9,Cond expr block1 block2)
 parseStmt toks = do 
     (toks',expr) <- parseExpr toks
     Right (toks',ExprStmt expr)

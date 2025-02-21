@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# OPTIONS_GHC -Wno-unused-local-binds #-}
 module Parser (parse,parseExpr,parseStmt) where
 
 import Tokeniser (tokenise)
@@ -56,7 +57,6 @@ parseStmt (Ident x : Delimiter MinusEq : toks) = do
 parseStmt (Ident x : Delimiter EqDelim : toks) = do 
   (toks',expr) <- parseExpr toks
   Right (toks',Asgn x expr)
--- this can be done much more nicely
 parseStmt (Keyword WhileTok : toks) = do 
   (toks',expr) <- parseExpr toks
   (toks'',b) <- checkTok (Delimiter Colon) toks'
@@ -91,48 +91,50 @@ parseExpr (Ident x : Delimiter LParen : toks) = do
     (toks',expr) <- parseExpr toks 
     toks'' <- checkTok (Delimiter RParen) toks'
     Right (toks'',FunctionCall x expr)
+parseExpr (Keyword Not : toks) = do 
+    (toks',comp) <- parseComparison toks
+    Right(toks',NotExp comp)
 parseExpr toks = do 
     (toks',expr) <- parseComparison toks 
+    -- harder to read than previous version but saves a lot of space and looks 
+    -- a lot cleaner. (Will marginally increase computation time but unless we 
+    -- are parsing tens of thousands of lines it will have no meaningful impact)
     case toks' of 
-        (Keyword And:toks'') -> do 
-            (toks''',expr') <- parseExpr toks'' 
-            Right (toks''',AndExp expr expr')
-        (Operator AndOp:toks'') -> do 
-            (toks''',expr') <- parseExpr toks'' 
-            Right (toks''',AndExp expr expr')
-        (Keyword or:toks'') -> do 
-            (toks''',expr') <- parseExpr toks'' 
-            Right (toks''',Pipe expr expr')
-        (Operator PipeOp:Operator PipeOp:toks'') -> do 
-            (toks''',expr') <- parseExpr toks'' 
-            Right (toks''',Pipe expr expr')
-        _ -> Right (toks',expr)
+        [] -> Right (toks',expr)  
+        (tk:toks'') -> case lookup tk parseExprLookup of 
+            Just eConst -> do 
+                (toks''',expr') <- parseExpr toks'' 
+                Right (toks''', eConst expr expr') 
+            Nothing -> Right(toks',expr)
+
+parseExprLookup :: [(Token, Expr -> Expr -> Expr)]
+parseExprLookup = [
+    (Keyword And, AndExp),
+    (Operator AndOp, AndExp),
+    (Keyword Or, Pipe),
+    (Operator PipeOp, Pipe)]
+    
 
 parseComparison :: Through [Token] ([Token], Expr)
 parseComparison toks = do 
-    (toks',expr) <- parseTerm toks 
-    parseComparison' expr toks' 
-  where 
-    parseComparison' :: Expr -> Through [Token] ([Token],Expr)
-    parseComparison' e (Operator GreaterThanOp:toks) = do 
-        (toks',expr) <- parseTerm toks
-        Right (toks',GreaterThan e expr)
-    parseComparison' e (Operator LessThanOp:toks) = do 
-        (toks',expr) <- parseTerm toks
-        Right (toks',LessThan e expr)
-    parseComparison' e (Operator LTEqOp:toks) = do 
-        (toks',expr) <- parseTerm toks
-        Right (toks',LTEq e expr)
-    parseComparison' e (Operator GTEqOp:toks) = do 
-        (toks',expr) <- parseTerm toks
-        Right (toks',GTEq e expr)
-    parseComparison' e (Operator EqOp:toks) = do 
-        (toks',expr) <- parseTerm toks
-        Right (toks',Eq e expr)
-    parseComparison' e (Operator NotEqOp:toks) = do 
-        (toks',expr) <- parseTerm toks
-        Right (toks',NotEq e expr)
-    parseComparison' e toks = Right (toks,e)
+    (toks',term) <- parseTerm toks 
+    case toks' of 
+        [] -> Right (toks',term)  
+        (tk:toks'') -> case lookup tk parseComparisonLookup of 
+            Just eConst -> do 
+                (toks''',expr') <- parseTerm toks'' 
+                Right (toks''', eConst term expr') 
+            Nothing -> Right(toks',term)
+
+parseComparisonLookup :: [(Token, Expr -> Expr -> Expr)]
+parseComparisonLookup = [(Operator LessThanOp, LessThan),
+    (Operator GreaterThanOp, GreaterThan),
+    (Operator LTEqOp, LTEq),
+    (Operator GTEqOp, GTEq),
+    (Operator EqOp, Eq),
+    (Operator NotEqOp, NotEq),
+    (Keyword Is, Eq),
+    (Keyword Not, NotEq)]
 
 parseTerm :: Through [Token] ([Token], Expr)
 parseTerm toks = do 

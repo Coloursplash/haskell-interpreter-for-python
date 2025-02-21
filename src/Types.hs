@@ -181,6 +181,7 @@ data Expr
   | ShiftR Expr Expr 
   | AndExp Expr Expr 
   | Pipe Expr Expr
+  | NotExp Expr
   | Hat Expr Expr 
   | Tilde Expr Expr 
   | Assign Expr Expr 

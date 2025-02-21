@@ -10,16 +10,19 @@ evaluate :: Through Block VarList
 evaluate = evalBlock []
 
 evalBlock :: VarList -> Through Block VarList
-evalBlock b vars = undefined
+evalBlock vars b = undefined
 
 evalStmt :: VarList -> Through Stmt VarList
-evalStmt stmt vars = undefined 
+evalStmt vars stmt = undefined 
 
 evalExpr :: VarList -> Through Expr VarList
-evalExpr stmt vars = undefined 
+evalExpr vars (Add e1 e2) = undefined 
 
-update :: String -> Int -> [(String,Int)] -> [(String,Int)]
-update str n vars = (str,n) : [(name,val) | (name,val) <- vars, name /= str]
+evalFunc :: VarList -> Through Block VarList
+evalFunc vars b = undefined
+
+update :: String -> Val -> VarList -> VarList
+update str val vars = (str,val) : [(name,val') | (name,val') <- vars, name /= str]
 
 lookUp :: Eq a => a -> [(a,b)] -> b
 lookUp = (fromJust .) . lookup

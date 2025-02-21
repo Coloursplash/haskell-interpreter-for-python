@@ -163,7 +163,6 @@ data Stmt
   = Asgn String Expr
   | While Expr Block
   | Cond Expr Block Block
-  | FunctionCall String Expr
   | ExprStmt Expr
   deriving (Eq, Show)
 
@@ -191,4 +190,5 @@ data Expr
   | Eq Expr Expr 
   | NotEq Expr Expr 
   | Identifier String
+  | FunctionCall String Expr
   deriving (Eq, Show)

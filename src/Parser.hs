@@ -53,10 +53,6 @@ parseStmt (Ident x : Delimiter MinusEq : toks) = do
 parseStmt (Ident x : Delimiter EqDelim : toks) = do 
   (toks',expr) <- parseExpr toks
   Right (toks',Asgn x expr)
-parseStmt (Ident x : Delimiter LParen : toks) = do 
-    (toks',expr) <- parseExpr toks 
-    toks'' <- checkTok (Delimiter RParen) toks'
-    Right (toks'',FunctionCall x expr)
 -- this can be done much more nicely
 parseStmt (Keyword WhileTok : toks) = do 
   (toks',expr) <- parseExpr toks
@@ -175,6 +171,10 @@ parseExponent toks = do
 
 -- handles lowest level of expressions - strings, ints etc
 parseAtom :: Through [Token] ([Token], Expr)
+parseAtom (Ident x : Delimiter LParen : toks) = do 
+    (toks',expr) <- parseExpr toks 
+    toks'' <- checkTok (Delimiter RParen) toks'
+    Right (toks'',FunctionCall x expr)
 parseAtom (Ident x:toks) = Right(toks, Identifier x)
 parseAtom (Val x:toks) = Right(toks, ValExp x)
 parseAtom (Operator Minus:Val (Int x):toks) = Right(toks, ValExp (Int (negate x))) 

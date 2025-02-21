@@ -153,6 +153,7 @@ data Val
   | FalseVal
   | NoneVal
   | TrueVal
+  | List [Val] 
   deriving (Eq, Show, Typeable)
 
 type Program = Block
@@ -183,7 +184,7 @@ data Expr
   | Pipe Expr Expr
   | NotExp Expr
   | Hat Expr Expr 
-  | Tilde Expr Expr 
+  | Tilde Expr 
   | Assign Expr Expr 
   | LessThan Expr Expr 
   | GreaterThan Expr Expr 

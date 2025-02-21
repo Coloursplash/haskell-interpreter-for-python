@@ -15,7 +15,9 @@ runInterpreter :: Through String (IO ())
 runInterpreter input = do
   tokens <- tokenise input
   ast <- parse tokens
-  evaluate ast
+  -- returns varList for now
+  varList <- evaluate ast
+  return $ print varList
 
 getFileContents :: [String] -> IO (Either Error String)
 getFileContents [] = return $ Left (FileError NoFilePathProvided)
@@ -31,4 +33,5 @@ main :: IO ()
 main = do
   args <- getArgs
   fileResult <- getFileContents args
+  -- Will print if either functions returns an error, otherwise nothing
   either print (either print id . runInterpreter) fileResult

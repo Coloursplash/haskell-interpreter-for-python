@@ -11,13 +11,13 @@ mHead _ = Nothing
 checkTok :: Token -> Through [Token] [Token]
 checkTok tk (tk':toks)  
     | tk == tk' = Right toks
-    | otherwise = Left(ParsingError (Unexpected (mHead toks) tk))
+checkTok tk toks = Left(ParsingError (Unexpected (mHead toks) tk))
     
 -- | Parse the tokenised input into an AST
 parse :: Through [Token] Block
 parse [] = Right []
 parse toks = do
-  (toks', b) <- parseBlock toks
+  (toks', b) <- parseBlock (toks++[BlockEnd])
   b' <- parse toks' 
   Right (b ++ b')
 
@@ -28,8 +28,8 @@ parseBlock toks = parseBlock' [] (BlockStart : toks)
     parseBlock' b (BlockStart:toks) = do 
       (toks',stmt) <- parseStmt toks
       parseBlock' (b ++ [stmt]) toks'
-    parseBlock' b (BlockEnd:toks) = Right (toks,b)
-    parseBlock' b [] = Right ([],b) 
+    parseBlock' b (BlockEnd:toks) = Right (toks,b) 
+    parseBlock' b [] = Left (ParsingError (Unexpected Nothing BlockEnd))
     parseBlock' b toks = do 
       (toks',stmt) <- parseStmt toks
       parseBlock' (b ++ [stmt]) toks'

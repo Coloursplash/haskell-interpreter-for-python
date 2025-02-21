@@ -11,7 +11,9 @@ import Types
 parserTests :: [TestTree]
 parserTests =
   [testGroup "Parsing expressions" (numberedTests parseTests),
-   testGroup "Additional parsing tests" (numberedTests additionalParseTests)]
+   testGroup "Additional parsing tests" (numberedTests additionalParseTests),
+   testGroup "Parsing Error Test" (numberedTests parserErrorTests)
+  ]
 
 parseTests :: [Assertion]
 parseTests =
@@ -95,4 +97,81 @@ additionalParseTests =
                 (LessThan (Identifier "y") (ValExp (Int 10))))
                [Asgn "x" (Sub (Identifier "x") (ValExp (Int 1))),
                 Asgn "y" (Add (Identifier "y") (ValExp (Int 1)))]]
+    , parse [Keyword If, 
+           Delimiter LParen, Ident "x", Operator GreaterThanOp, Val (Int 0), Delimiter RParen,
+           Operator AndOp,
+           Delimiter LParen, Ident "y", Operator LessThanOp, Val (Int 10), Delimiter RParen,
+           Delimiter Colon, BlockStart,
+           Ident "x", Delimiter MinusEq, Val (Int 1),
+           Ident "y", Delimiter PlusEq, Val (Int 1),
+           BlockEnd, Keyword Else, Delimiter Colon, BlockStart,
+           Ident "x", Delimiter MinusEq, Val (Int 2),
+           Ident "y", Delimiter PlusEq, Val (Int 2), BlockEnd
+           ]
+    @?= Right [Cond (AndExp 
+                (GreaterThan (Identifier "x") (ValExp (Int 0)))
+                (LessThan (Identifier "y") (ValExp (Int 10))))
+               [Asgn "x" (Sub (Identifier "x") (ValExp (Int 1))),
+                Asgn "y" (Add (Identifier "y") (ValExp (Int 1)))]
+               [Asgn "x" (Sub (Identifier "x") (ValExp (Int 2))),
+                Asgn "y" (Add (Identifier "y") (ValExp (Int 2)))
+               ]]
+  ]
+
+parserErrorTests :: [Assertion]
+parserErrorTests = [
+  -- Incomplete assignment
+    parse [Ident "x", Delimiter EqDelim]
+    @?= Left (ParsingError (ExprNotFound (Just BlockEnd)))
+
+  -- Missing closing parenthesis
+  , parse [Ident "print", Delimiter LParen, Val(Str "Hello")]
+    @?= Left (ParsingError (Unexpected (Just BlockEnd) (Delimiter RParen)))
+
+  -- Unexpected token in expression
+  , parse [Val (Int 5), Operator Plus, Keyword If]
+    @?= Left (ParsingError (ExprNotFound (Just (Keyword If))))
+
+  -- Mismatched block structure
+  , parse [Keyword If, Ident "x", Operator GreaterThanOp, Val (Int 0), Delimiter Colon, BlockStart,
+           Ident "print", Delimiter LParen, Val(Str "Positive"), Delimiter RParen]
+    @?= Left (ParsingError (Unexpected Nothing BlockEnd))
+
+  -- Invalid operator in expression
+  , parse [Ident "y", Delimiter EqDelim, Val (Int 1), Delimiter Comma, Val (Int 2)]
+    @?= Left (ParsingError (ExprNotFound (Just (Delimiter Comma))))
+
+  -- Unexpected end of input
+  , parse [Keyword WhileTok, Ident "True", Delimiter Colon]
+    @?= Left (ParsingError (Unexpected (Just BlockEnd) BlockStart))
+
+  -- Invalid token sequence
+  , parse [Operator Plus, Operator Minus, Operator Times]
+    @?= Left (ParsingError (StmtNotFound (Just (Operator Plus))))
+
+  -- Unexpected keyword
+  , parse [Ident "x", Delimiter EqDelim, Keyword Else]
+    @?= Left (ParsingError (ExprNotFound (Just (Keyword Else))))
+
+  -- Invalid function call
+  , parse [Ident "func", Delimiter LParen, Delimiter RParen, Delimiter LParen]
+    @?= Left (ParsingError (ExprNotFound (Just (Delimiter RParen))))
+
+  -- Incomplete if-else structure
+  , parse [Keyword If, Ident "x", Operator GreaterThanOp, Val (Int 0), Delimiter Colon, BlockStart,
+           Ident "print", Delimiter LParen, Val (Str "Positive"), Delimiter RParen, BlockEnd,
+           Keyword Else]
+    @?= Left (ParsingError (Unexpected (Just BlockEnd) (Delimiter Colon)))
+
+  -- Invalid indentation (if your parser checks for this)
+  , parse [BlockStart, BlockStart, Ident "x", Delimiter EqDelim, Val (Int 5), BlockEnd]
+    @?= Left (ParsingError (ExprNotFound (Just BlockStart)))
+
+  -- Invalid use of keywords
+  , parse [Keyword If, Keyword Else, Delimiter Colon]
+    @?= Left (ParsingError (ExprNotFound (Just (Keyword Else))))
+
+  -- Incomplete binary operation
+  , parse [Val (Int 5), Operator Plus]
+    @?= Left (ParsingError (ExprNotFound (Just BlockEnd)))
   ]

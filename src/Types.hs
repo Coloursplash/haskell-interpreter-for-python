@@ -1,5 +1,5 @@
 module Types where
-
+import Data.Typeable (Typeable, typeOf)
 type Through a b = a -> Either Error b
 
 data Error
@@ -7,20 +7,20 @@ data Error
   | TokenisationError TokenisationError
   | ParsingError ParsingError
   | EvaluationError EvaluationError
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 -- File errors for Main.hs
 data FileError
   = NoFilePathProvided
   | FileNotFound String
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 -- Tokenization errors
 data TokenisationError
   = BadChar Char
   | UnrecognizedOperator String
   | UnexpectedEOF
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 -- Parsing errors
 data ParsingError
@@ -30,7 +30,7 @@ data ParsingError
   | SyntaxError String
   | IndentationError String
   | Unexpected (Maybe Token) Token
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 -- Evaluation errors
 data EvaluationError
@@ -43,7 +43,7 @@ data EvaluationError
   | RuntimeError String
   | IOError String
   | InvalidOperation String
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 data Token
   = Keyword Keyword
@@ -54,7 +54,7 @@ data Token
   | BlockEnd
   | Val Val
   | Ident String -- Can be variable or function name
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 data Keyword
   = And
@@ -89,7 +89,7 @@ data Keyword
   | WhileTok
   | With
   | Yield
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 data Operator
   = Plus
@@ -113,7 +113,7 @@ data Operator
   | GTEqOp
   | EqOp
   | NotEqOp
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 data Delimiter
   = LParen
@@ -143,7 +143,7 @@ data Delimiter
   | ShiftREq
   | ShiftLEq
   | PowEq
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 data Val
   = Int Integer
@@ -153,7 +153,7 @@ data Val
   | FalseVal
   | NoneVal
   | TrueVal
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 type Program = Block
 
@@ -165,7 +165,7 @@ data Stmt
   | Cond Expr Block Block
   | ExprStmt Expr
   | Ret Expr
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
 
 data Expr
   = ValExp Val
@@ -193,4 +193,8 @@ data Expr
   | NotEq Expr Expr 
   | Identifier String
   | FunctionCall String Expr
-  deriving (Eq, Show)
+  deriving (Eq, Show, Typeable)
+
+
+showType :: Typeable a => a -> String 
+showType x = show (typeOf x)

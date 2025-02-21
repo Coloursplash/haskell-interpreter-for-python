@@ -25,18 +25,18 @@ evalStmt vars (Asgn str e) = do
 evalStmt vars stmt@(While e b) = do
   val <- evalExpr vars e
   case val of
-    FalseVal -> Right vars
-    TrueVal -> do
+    Bool False -> Right vars
+    Bool True -> do
       vars' <- evalBlock vars b
       evalStmt vars' stmt
     x -> Left (EvaluationError $ TypeError ("Expected type Boolean but got " ++ showType x))
 evalStmt vars (Cond e b1 b2) = do
   val <- evalExpr vars e
   case val of
-    TrueVal -> do
+    Bool True -> do
       vars' <- evalBlock vars b1
       Right vars'
-    FalseVal -> do
+    Bool False -> do
       vars' <- evalBlock vars b2
       Right vars'
 evalStmt vars (ExprStmt e) = do
@@ -108,10 +108,6 @@ evalExpr vars (Hat e1 e2) = do
 evalExpr vars (Tilde e) = do
   val <- evalExpr vars e
   tildeVal val
-evalExpr vars (Assign e1 e2) = do
-  val1 <- evalExpr vars e1
-  val2 <- evalExpr vars e2
-  assignVals val1 val2
 evalExpr vars (LessThan e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2

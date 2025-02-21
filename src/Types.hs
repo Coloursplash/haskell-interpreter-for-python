@@ -147,12 +147,10 @@ data Delimiter
 
 data Val
   = Int Integer
-  | Float Float
+  | Float Double
   | Str String
   | Bool Bool
-  | FalseVal
   | NoneVal
-  | TrueVal
   | List [Val] 
   deriving (Eq, Show, Typeable)
 
@@ -185,7 +183,6 @@ data Expr
   | NotExp Expr
   | Hat Expr Expr 
   | Tilde Expr 
-  | Assign Expr Expr 
   | LessThan Expr Expr 
   | GreaterThan Expr Expr 
   | LTEq Expr Expr 

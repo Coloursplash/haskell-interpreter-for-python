@@ -78,6 +78,9 @@ parseStmt (Keyword If : toks) = do
                      >>= parseBlock
 
     Right (toks''', Cond expr b1 b2)
+parseStmt (Keyword Return : toks) = do 
+    (toks',expr) <- parseExpr toks 
+    Right (toks',Ret expr)
 parseStmt toks = do 
     (toks',expr) <- parseExpr toks
     Right (toks',ExprStmt expr)

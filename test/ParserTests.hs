@@ -147,7 +147,7 @@ parserErrorTests = [
 
   -- Invalid token sequence
   , parse [Operator Plus, Operator Minus, Operator Times]
-    @?= Left (ParsingError (StmtNotFound (Just (Operator Plus))))
+    @?= Left (ParsingError (ExprNotFound (Just (Operator Plus))))
 
   -- Unexpected keyword
   , parse [Ident "x", Delimiter EqDelim, Keyword Else]

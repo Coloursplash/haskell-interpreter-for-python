@@ -164,6 +164,7 @@ data Stmt
   | While Expr Block
   | Cond Expr Block Block
   | ExprStmt Expr
+  | Ret Expr
   deriving (Eq, Show)
 
 data Expr

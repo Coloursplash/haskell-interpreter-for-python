@@ -29,7 +29,10 @@ parseBlock toks = parseBlock' [] (BlockStart : toks)
       (toks',stmt) <- parseStmt toks
       parseBlock' (b ++ [stmt]) toks'
     parseBlock' b (BlockEnd:toks) = Right (toks,b)
-    parseBlock' b toks = Right (toks,b)
+    parseBlock' b [] = Right ([],b) 
+    parseBlock' b toks = do 
+      (toks',stmt) <- parseStmt toks
+      parseBlock' (b ++ [stmt]) toks'
 
 
 -- Did not implement If statements/For statements as we havent fully discussed
@@ -56,29 +59,35 @@ parseStmt (Ident x : Delimiter EqDelim : toks) = do
 -- this can be done much more nicely
 parseStmt (Keyword WhileTok : toks) = do 
   (toks',expr) <- parseExpr toks
-  toks'' <- checkTok (Delimiter Colon) toks'
-  toks''' <- checkTok BlockStart toks''
-  (toks'''',b) <- parseBlock toks'''
-  Right (toks'''',While expr b)
+  (toks'',b) <- checkTok (Delimiter Colon) toks'
+          >>= checkTok BlockStart 
+          >>= parseBlock 
+  Right (toks'',While expr b)
 -- currently assuming there will always be an else... clause
 -- when implemented 'elif's will be another if ... else statement 
 -- that will be added to the else block
-parseStmt (Keyword If : toks1) = do 
-    (toks2,expr) <- parseExpr toks1
-    toks3 <- checkTok (Delimiter Colon) toks2
-    toks4 <- checkTok BlockStart toks3
-    (toks5,block1) <- parseBlock toks4
-    toks6 <- checkTok (Keyword Else) toks5
-    toks7 <- checkTok (Delimiter Colon) toks6
-    toks8 <- checkTok BlockStart toks7
-    (toks9,block2) <- parseBlock toks8
-    Right (toks9,Cond expr block1 block2)
+parseStmt (Keyword If : toks) = do
+    (toks', expr)   <- parseExpr toks
+    (toks'', b1)    <- checkTok (Delimiter Colon) toks'
+                      >>= checkTok BlockStart
+                      >>= parseBlock 
+    
+    (toks''', b2)   <- checkTok (Keyword Else) toks'' 
+                     >>= checkTok (Delimiter Colon)
+                     >>= checkTok BlockStart
+                     >>= parseBlock
+
+    Right (toks''', Cond expr b1 b2)
 parseStmt toks = do 
     (toks',expr) <- parseExpr toks
     Right (toks',ExprStmt expr)
 
 
 parseExpr :: Through [Token] ([Token], Expr)
+parseExpr (Ident x : Delimiter LParen : toks) = do 
+    (toks',expr) <- parseExpr toks 
+    toks'' <- checkTok (Delimiter RParen) toks'
+    Right (toks'',FunctionCall x expr)
 parseExpr toks = do 
     (toks',expr) <- parseComparison toks 
     case toks' of 
@@ -171,10 +180,6 @@ parseExponent toks = do
 
 -- handles lowest level of expressions - strings, ints etc
 parseAtom :: Through [Token] ([Token], Expr)
-parseAtom (Ident x : Delimiter LParen : toks) = do 
-    (toks',expr) <- parseExpr toks 
-    toks'' <- checkTok (Delimiter RParen) toks'
-    Right (toks'',FunctionCall x expr)
 parseAtom (Ident x:toks) = Right(toks, Identifier x)
 parseAtom (Val x:toks) = Right(toks, ValExp x)
 parseAtom (Operator Minus:Val (Int x):toks) = Right(toks, ValExp (Int (negate x))) 

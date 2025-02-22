@@ -236,9 +236,8 @@ parseAtom tks@(Delimiter LBrace : toks) = do
     parsePair :: Through [Token] ([Token], (Expr, Expr))
     parsePair toks = do
       (toks', key) <- parseAtom toks
-      case toks' of
-        (Delimiter Colon : toks'') -> do
-          (toks'', value) <- parseAtom toks
-          Right (toks'', (key, value))
-        toks -> Left $ ParsingError (Unexpected (mHead toks) (Delimiter RBrace))
+      (toks'', value) <-
+          checkTok (Delimiter Colon) toks'
+          >>= parseAtom
+      Right(toks'', (key, value))
 parseAtom tks = Left (ParsingError $ ExprNotFound $ mHead tks)

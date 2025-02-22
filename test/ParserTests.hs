@@ -9,6 +9,7 @@ import Test.Tasty.HUnit (Assertion, testCase, (@?=))
 import TestUtils (numberedTests)
 import Tokeniser (tokenise)
 import Types
+import Types (Delimiter (LBrace, RBrace), Token (Delimiter))
 
 parserTests :: [TestTree]
 parserTests =
@@ -109,7 +110,21 @@ parseTests =
           Asgn "z" (Add (Identifier "x") (Identifier "y"))
         ],
     parse [] @?= Right [],
-    parse [Operator Plus] @?= Left (ParsingError (ExprNotFound (Just (Operator Plus))))
+    parse [Operator Plus] @?= Left (ParsingError (ExprNotFound (Just (Operator Plus)))),
+    parse
+      [ Ident "dict",
+        Delimiter EqDelim,
+        Delimiter LBrace,
+        Val (Str "hello"),
+        Delimiter Colon,
+        Val (Str "world"),
+        Delimiter Comma,
+        Val (Str "hi"),
+        Delimiter Colon,
+        Val (Str "there"),
+        Delimiter RBrace
+      ]
+      @?= Right [Asgn "dict" (ValExp (Dict [(ValExp (Str "hello"), ValExp (Str "world")), (ValExp (Str "hi"), ValExp (Str "there"))]))]
   ]
 
 additionalParseTests :: [Assertion]

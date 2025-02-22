@@ -1,6 +1,18 @@
 module Types where
+import Control.Monad.Trans.Except (ExceptT)
 import Data.Typeable (Typeable, typeOf)
+import Data.List (intercalate)
+
 type Through a b = a -> Either Error b
+
+-- Designed this to allow for print statements whilst running programs
+-- this implementation meant fewer changes to the original code and less 
+-- need for 'case ... of' expressions than using a -> IO (Either Error b)
+-- might have required. Still not 100% sure what the best option will be
+-- going forward so this might be changed later.
+type ThroughIO a b = a -> ExceptT Error IO b
+
+type VarList = [(String, Val)]
 
 data Error
   = FileError FileError
@@ -150,9 +162,21 @@ data Val
   | Float Double
   | Str String
   | Bool Bool
+  | TrueVal 
+  | FalseVal
   | NoneVal
   | List [Val] 
-  deriving (Eq, Show, Typeable)
+  deriving (Eq, Typeable)
+
+instance Show Val where
+  show (Int i) = show i
+  show (Float f) = show f
+  show (Str s) = s
+  show (Bool b) = show b
+  show TrueVal = "True"
+  show FalseVal = "False"
+  show NoneVal = "None"
+  show (List vs) = "[" ++ intercalate ", " (map show vs) ++ "]"
 
 type Program = Block
 
@@ -164,6 +188,7 @@ data Stmt
   | Cond Expr Block Block
   | ExprStmt Expr
   | Ret Expr
+  | Print Expr
   deriving (Eq, Show, Typeable)
 
 data Expr
@@ -190,6 +215,7 @@ data Expr
   | Eq Expr Expr 
   | NotEq Expr Expr 
   | Identifier String
+  -- this should be changed to FunctionCall String [Expr] later
   | FunctionCall String Expr
   deriving (Eq, Show, Typeable)
 

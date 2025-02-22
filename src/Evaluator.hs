@@ -4,44 +4,44 @@ module Evaluator (evaluate) where
 
 import Data.List (genericReplicate)
 import Data.Maybe (fromJust)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Except
+import Control.Monad (foldM)
 import Types
 
-type VarList = [(String, Val)]
-
 -- | Evaluates the AST (returns a string for now)
-evaluate :: Through Block VarList
+evaluate :: ThroughIO Block VarList
 evaluate = evalBlock []
 
-evalBlock :: VarList -> Through Block VarList
-evalBlock vars [] = Right vars
-evalBlock vars (s : b) = do
-  vars' <- evalStmt vars s
-  evalBlock vars' b
+evalBlock :: VarList -> ThroughIO Block VarList
+evalBlock = foldM evalStmt
 
-evalStmt :: VarList -> Through Stmt VarList
+evalStmt :: VarList -> ThroughIO Stmt VarList
 evalStmt vars (Asgn str e) = do
-  vars' <- evalExpr vars e
-  Right $ update str vars' vars
+  vars' <- except $ evalExpr vars e
+  return $ update str vars' vars
 evalStmt vars stmt@(While e b) = do
-  val <- evalExpr vars e
+  val <- except $ evalExpr vars e
   case val of
-    Bool False -> Right vars
+    Bool False -> return vars
     Bool True -> do
       vars' <- evalBlock vars b
       evalStmt vars' stmt
-    x -> Left (EvaluationError $ TypeError ("Expected type Boolean but got " ++ showType x))
+    x -> throwE (EvaluationError $ TypeError ("Expected type Boolean but got " ++ showType x))
 evalStmt vars (Cond e b1 b2) = do
-  val <- evalExpr vars e
+  val <- except $ evalExpr vars e
   case val of
     Bool True -> do
-      vars' <- evalBlock vars b1
-      Right vars'
+      evalBlock vars b1
     Bool False -> do
-      vars' <- evalBlock vars b2
-      Right vars'
+      evalBlock vars b2
 evalStmt vars (ExprStmt e) = do
-  val <- evalExpr vars e
-  Right vars
+  val <- except $ evalExpr vars e
+  return vars
+evalStmt vars (Print e) = do
+    val <- except $ evalExpr vars e
+    liftIO $ print val
+    return vars
 evalStmt vars (Ret e) = undefined
 
 evalExpr :: VarList -> Through Expr Val
@@ -175,12 +175,12 @@ intDivVals x y = Left $ EvaluationError $ TypeError $ "Integer Division is not s
 
 modVals :: Val -> Val -> Either Error Val
 modVals (Int x) (Int y) = Right $ Int (x `mod` y)
-modVals (Float x) (Int y) = Right $ Float $ doubleMod x (fromIntegral y) 
+modVals (Float x) (Int y) = Right $ Float $ doubleMod x (fromIntegral y)
 modVals (Int x) (Float y) = Right $ Float $ doubleMod (fromIntegral x) y
 modVals (Float x) (Float y) = Right $ Float $ doubleMod x y
 modVals x y = Left $ EvaluationError $ TypeError $ "Integer Division is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
-    
-doubleMod :: Double -> Double -> Double 
+
+doubleMod :: Double -> Double -> Double
 doubleMod x y = x - (fromIntegral (floor (x / y)) * y)
 
 powVals :: Val -> Val -> Either Error Val

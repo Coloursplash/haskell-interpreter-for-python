@@ -91,10 +91,9 @@ keywordTable =
     ("while", Keyword WhileTok),
     ("with", Keyword With),
     ("yield", Keyword Yield),
-    -- Cheeky True/False
-    ("True", Val TrueVal),
+    ("True", Val (Bool True)),
     ("None", Val NoneVal),
-    ("False", Val FalseVal)
+    ("False", Val (Bool False))
   ]
 
 -- | Tokenises the input string into a list of tokens

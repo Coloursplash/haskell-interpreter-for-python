@@ -45,6 +45,10 @@ parseStmt (Ident x : Operator EqOp : toks) = do
 parseStmt (Ident x : Delimiter EqDelim : toks) = do
   (toks', expr) <- parseExpr toks
   Right (toks', Asgn x expr)
+parseStmt (Ident "print" : Delimiter LParen : toks) = do
+  (toks', expr) <- parseExpr toks
+  toks'' <- checkTok (Delimiter RParen) toks'
+  Right (toks'', Print expr)
 parseStmt (Ident x : tk : toks) = case lookup tk parseStmtLookup of
   Just eConst -> do
     (toks', expr) <- parseExpr toks
@@ -68,13 +72,11 @@ parseStmt (Keyword If : toks) = do
     checkTok (Delimiter Colon) toks'
       >>= checkTok BlockStart
       >>= parseBlock
-
   (toks''', b2) <-
     checkTok (Keyword Else) toks''
       >>= checkTok (Delimiter Colon)
       >>= checkTok BlockStart
       >>= parseBlock
-
   Right (toks''', Cond expr b1 b2)
 parseStmt (Keyword Return : toks) = do
   (toks', expr) <- parseExpr toks

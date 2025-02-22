@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Control.Exception (ErrorCall (ErrorCall), IOException, try)
+import Control.Monad.Trans.Except (except,ExceptT,runExceptT,throwE)
 import Data.Char (isSpace)
 import Data.List (dropWhileEnd)
 import Evaluator (evaluate)
@@ -9,29 +10,32 @@ import System.Environment (getArgs)
 import System.IO.Error
 import Tokeniser (tokenise)
 import Types
+import Control.Monad.IO.Class (MonadIO(liftIO))
 
 -- | Main function to run the interpreter
-runInterpreter :: Through String (IO ())
+runInterpreter :: ThroughIO String ()
 runInterpreter input = do
-  tokens <- tokenise input
-  ast <- parse tokens
+  tokens <- except $ tokenise input
+  ast <- except $ parse tokens
   -- returns varList for now
   varList <- evaluate ast
-  return $ print varList
+  liftIO $ print varList
 
-getFileContents :: [String] -> IO (Either Error String)
-getFileContents [] = return $ Left (FileError NoFilePathProvided)
+getFileContents :: ThroughIO [String] (Either Error String)
+getFileContents [] = throwE (FileError NoFilePathProvided)
 getFileContents (path : _) = do
-  result <- try (readFile path) :: IO (Either IOError String)
-  return $
-    either
-      (const (Left (FileError (FileNotFound path))))
-      (Right . dropWhileEnd isSpace)
-      result
+  result <- liftIO (readFile path) 
+  return $ Right result
 
 main :: IO ()
 main = do
   args <- getArgs
-  fileResult <- getFileContents args
-  -- Will print if either functions returns an error, otherwise nothing
-  either print (either print id . runInterpreter) fileResult
+  result <- runExceptT $ do
+    fileContents <- getFileContents args
+    case fileContents of 
+      Left _ -> throwE (FileError (FileNotFound (head args))) 
+      Right contents -> runInterpreter contents
+    
+  case result of
+    Left err -> print err
+    Right _ -> putStrLn "Interpretation completed successfully"

@@ -162,10 +162,11 @@ data Val
   | Float Double
   | Str String
   | Bool Bool
-  | TrueVal 
+  | TrueVal
   | FalseVal
   | NoneVal
-  | List [Expr] 
+  | List [Expr]
+  | Dict [(Expr, Expr)]
   deriving (Eq, Typeable)
 
 instance Show Val where
@@ -177,6 +178,7 @@ instance Show Val where
   show FalseVal = "False"
   show NoneVal = "None"
   show (List vs) = "[" ++ intercalate ", " (map show vs) ++ "]"
+  show (Dict ps) = "{" ++ intercalate ", " (map (\(k, v) -> show k ++ ": " ++ show v) ps) ++ "}"
 
 type Program = Block
 

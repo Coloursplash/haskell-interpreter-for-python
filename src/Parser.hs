@@ -209,7 +209,7 @@ parseAtom (Delimiter LParen : toks) = do
   (toks', expr) <- parseExpr toks
   toks'' <- checkTok (Delimiter RParen) toks'
   Right (toks'', expr)
-parseAtom tks@(Delimiter LSquare : toks) = do 
+parseAtom tks@(Delimiter LSquare : toks) = do
   parseList [] tks
   where 
     parseList :: [Expr] -> Through [Token] ([Token], Expr)
@@ -220,7 +220,27 @@ parseAtom tks@(Delimiter LSquare : toks) = do
     parseList exprs (Delimiter Comma : toks) = do 
       (toks',expr) <- parseAtom toks
       parseList (expr : exprs) toks' 
-    parseList exprs toks = Left $ ParsingError (Unexpected (mHead toks) (Delimiter RBrace))
+    parseList exprs toks = Left $ ParsingError (Unexpected (mHead toks) (Delimiter RSquare))
+parseAtom tks@(Delimiter LBrace : toks) = do
+  parseDict [] tks
+  where
+    parseDict :: [(Expr, Expr)] -> Through [Token] ([Token], Expr)
+    parseDict pairs (Delimiter LBrace : toks) = do
+      (toks', pair) <- parsePair toks
+      parseDict (pair : pairs ) toks'
+    parseDict pairs (Delimiter RBrace : toks) = Right (toks, ValExp $ Dict $ reverse pairs)
+    parseDict pairs (Delimiter Comma : toks) = do
+      (toks', pair) <- parsePair toks
+      parseDict (pair : pairs ) toks'
+    parseDict exprs toks = Left $ ParsingError (Unexpected (mHead toks) (Delimiter RBrace))
+    parsePair :: Through [Token] ([Token], (Expr, Expr))
+    parsePair toks = do
+      (toks', key) <- parseAtom toks
+      case toks' of
+        (Delimiter Colon : toks'') -> do
+          (toks'', value) <- parseAtom toks
+          Right (toks'', (key, value))
+        toks -> Left $ ParsingError (Unexpected (mHead toks) (Delimiter RBrace))
 
 
 parseAtom tks = Left (ParsingError $ ExprNotFound $ mHead tks)

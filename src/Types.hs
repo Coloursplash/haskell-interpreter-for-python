@@ -1,12 +1,13 @@
 module Types where
+
 import Control.Monad.Trans.Except (ExceptT)
-import Data.Typeable (Typeable, typeOf)
 import Data.List (intercalate)
+import Data.Typeable (Typeable, typeOf)
 
 type Through a b = a -> Either Error b
 
 -- Designed this to allow for print statements whilst running programs
--- this implementation meant fewer changes to the original code and less 
+-- this implementation meant fewer changes to the original code and less
 -- need for 'case ... of' expressions than using a -> IO (Either Error b)
 -- might have required. Still not 100% sure what the best option will be
 -- going forward so this might be changed later.
@@ -61,8 +62,8 @@ data Token
   = Keyword Keyword
   | Operator Operator
   | Delimiter Delimiter
-  -- Since python uses indentation for blocks
-  | BlockStart
+  | -- Since python uses indentation for blocks
+    BlockStart
   | BlockEnd
   | Val Val
   | Ident String -- Can be variable or function name
@@ -200,30 +201,30 @@ data Expr
   | Mul Expr Expr
   | Pow Expr Expr
   | Div Expr Expr
-  | IntDiv Expr Expr 
+  | IntDiv Expr Expr
   | Mod Expr Expr
   | At Expr Expr
-  | ShiftL Expr Expr 
-  | ShiftR Expr Expr 
-  | AndExp Expr Expr 
+  | ShiftL Expr Expr
+  | ShiftR Expr Expr
+  | AndExp Expr Expr
   | Pipe Expr Expr
   | NotExp Expr
-  | Hat Expr Expr 
-  | Tilde Expr 
-  | LessThan Expr Expr 
-  | GreaterThan Expr Expr 
-  | LTEq Expr Expr 
-  | GTEq Expr Expr 
-  | Eq Expr Expr 
-  | NotEq Expr Expr 
+  | Hat Expr Expr
+  | Tilde Expr
+  | LessThan Expr Expr
+  | GreaterThan Expr Expr
+  | LTEq Expr Expr
+  | GTEq Expr Expr
+  | Eq Expr Expr
+  | NotEq Expr Expr
   | Identifier String
-  -- this should be changed to FunctionCall String [Expr] later
-  | FunctionCall String Expr
+  | -- this should be changed to FunctionCall String [Expr] later
+    FunctionCall String Expr
   deriving (Eq, Typeable)
 
-instance Show Expr where 
-  show (ValExp val) = show val  
+instance Show Expr where
+  show (ValExp val) = show val
   show x = show x
 
-showType :: Typeable a => a -> String 
+showType :: (Typeable a) => a -> String
 showType x = show (typeOf x)

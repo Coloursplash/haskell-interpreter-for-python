@@ -1,10 +1,10 @@
 module Tokeniser (tokenise) where
 
 import Data.Char (isAlphaNum, isDigit, isLetter, isSpace)
-import Data.List (isPrefixOf, maximumBy, find)
+import Data.List (find, isPrefixOf, maximumBy)
+import Data.Maybe (fromJust, isJust)
 import Data.Ord (comparing)
 import Types
-import Data.Maybe(isJust, fromJust)
 
 opDelimTable :: [(String, Token)]
 opDelimTable =
@@ -109,7 +109,7 @@ tokenise' inp@(c : cs) prevIndent currIndent toks
   | isDigit c = handleNumber inp prevIndent currIndent toks
   | c == '"' || c == '\'' = handleString inp prevIndent currIndent toks
   | isLetter c = handleIdentifier inp prevIndent currIndent toks
-  | c == '#' = handleComment cs prevIndent currIndent toks 
+  | c == '#' = handleComment cs prevIndent currIndent toks
   | otherwise = handleOperator inp prevIndent currIndent toks
 
 handleSpace :: String -> Int -> Int -> Through [Token] [Token]
@@ -118,17 +118,17 @@ handleSpace inp prevIndent currIndent toks =
    in tokenise' rest prevIndent currIndent toks
 
 handleNumber :: String -> Int -> Int -> Through [Token] [Token]
-handleNumber inp prevIndent currIndent toks 
+handleNumber inp prevIndent currIndent toks
   | length (filter (== '.') numStr) > 1 = Left (TokenisationError (BadChar '.'))
-  | all (\x -> isDigit x || x == '.') numStr = let 
-       numVal =
-         if '.' `elem` numStr
-           then Val (Float (read numStr))
-           else Val (Int (read numStr))
-    in tokenise' rest prevIndent currIndent (numVal : toks)
+  | all (\x -> isDigit x || x == '.') numStr =
+      let numVal =
+            if '.' `elem` numStr
+              then Val (Float (read numStr))
+              else Val (Int (read numStr))
+       in tokenise' rest prevIndent currIndent (numVal : toks)
   | otherwise = Left (TokenisationError (BadChar (fromJust $ find (not . (\x -> isDigit x || x == '.')) numStr)))
-   where 
-      (numStr, rest) = break (\x -> isSpace x || x/= '.' && isJust (lookup [x] opDelimTable)) inp
+  where
+    (numStr, rest) = break (\x -> isSpace x || x /= '.' && isJust (lookup [x] opDelimTable)) inp
 
 handleIdentifier :: String -> Int -> Int -> Through [Token] [Token]
 handleIdentifier inp prevIndent currIndent toks =
@@ -141,8 +141,8 @@ handleOperator :: String -> Int -> Int -> Through [Token] [Token]
 handleOperator inp prevIndent currIndent toks =
   let (op, rest) = extractOperator inp
    in case lookup op opDelimTable of
-      Just token -> tokenise' rest prevIndent currIndent (token : toks)
-      Nothing -> Left (TokenisationError (UnrecognizedOperator op))
+        Just token -> tokenise' rest prevIndent currIndent (token : toks)
+        Nothing -> Left (TokenisationError (UnrecognizedOperator op))
 
 handleIndent :: Int -> Int -> String -> Through [Token] [Token]
 handleIndent newIndent prevIndent rest toks
@@ -153,8 +153,8 @@ handleIndent newIndent prevIndent rest toks
   | otherwise = tokenise' rest prevIndent newIndent toks
 
 handleString :: String -> Int -> Int -> Through [Token] [Token]
-handleString (closeChar:inp) prevIndent currIndent toks =
-  let (string, _:rest) = break (closeChar ==) inp
+handleString (closeChar : inp) prevIndent currIndent toks =
+  let (string, _ : rest) = break (closeChar ==) inp
    in if '\n' `elem` string
         then
           Left (TokenisationError (BadChar '\n'))
@@ -171,6 +171,6 @@ extractOperator s =
            in (best, drop (length best) s)
 
 handleComment :: String -> Int -> Int -> Through [Token] [Token]
-handleComment inp prevIndent currIndent toks = 
-  let (_, rest) = span (/= '\n') inp 
-    in tokenise' rest prevIndent currIndent toks
+handleComment inp prevIndent currIndent toks =
+  let (_, rest) = span (/= '\n') inp
+   in tokenise' rest prevIndent currIndent toks

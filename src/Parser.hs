@@ -209,4 +209,18 @@ parseAtom (Delimiter LParen : toks) = do
   (toks', expr) <- parseExpr toks
   toks'' <- checkTok (Delimiter RParen) toks'
   Right (toks'', expr)
+parseAtom tks@(Delimiter LSquare : toks) = do 
+  parseList [] tks
+  where 
+    parseList :: [Expr] -> Through [Token] ([Token], Expr)
+    parseList exprs (Delimiter LSquare : toks) = do 
+      (toks', expr) <- parseAtom toks
+      parseList (expr : exprs) toks' 
+    parseList exprs (Delimiter RSquare : toks) = Right (toks, ValExp $ List $ reverse exprs)
+    parseList exprs (Delimiter Comma : toks) = do 
+      (toks',expr) <- parseAtom toks
+      parseList (expr : exprs) toks' 
+    parseList exprs toks = Left $ ParsingError (Unexpected (mHead toks) (Delimiter RBrace))
+
+
 parseAtom tks = Left (ParsingError $ ExprNotFound $ mHead tks)

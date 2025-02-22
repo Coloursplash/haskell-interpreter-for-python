@@ -165,7 +165,7 @@ data Val
   | TrueVal 
   | FalseVal
   | NoneVal
-  | List [Val] 
+  | List [Expr] 
   deriving (Eq, Typeable)
 
 instance Show Val where
@@ -217,8 +217,11 @@ data Expr
   | Identifier String
   -- this should be changed to FunctionCall String [Expr] later
   | FunctionCall String Expr
-  deriving (Eq, Show, Typeable)
+  deriving (Eq, Typeable)
 
+instance Show Expr where 
+  show (ValExp val) = show val  
+  show x = show x
 
 showType :: Typeable a => a -> String 
 showType x = show (typeOf x)

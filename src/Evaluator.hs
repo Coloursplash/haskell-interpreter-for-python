@@ -150,11 +150,14 @@ subVals (Float x) (Int y) = Right $ Float (x - fromIntegral y)
 subVals x y = Left $ EvaluationError $ TypeError $ "Subtraction is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
 
 mulVals :: Val -> Val -> Either Error Val
-mulVals (Int x) (Int y) = Right $ Int (x * y)
+mulVals (Int x) (Int y)     = Right $ Int (x * y)
 mulVals (Float x) (Float y) = Right $ Float (x * y)
-mulVals (Int x) (Float y) = Right $ Float (fromIntegral x * y)
-mulVals (Float x) (Int y) = Right $ Float (x * fromIntegral y)
-mulVals (List xs) (Int y) = Right $ List (concat $ genericReplicate y xs)
+mulVals (Int x) (Float y)   = Right $ Float (fromIntegral x * y)
+mulVals (Float x) (Int y)   = Right $ Float (x * fromIntegral y)
+mulVals (List xs) (Int y)   = Right $ List (concat $ genericReplicate y xs)
+mulVals (Int x) (List ys)   = Right $ List (concat $ genericReplicate x ys)
+mulVals (Int x) (Str ys)    = Right $ Str (concat $ genericReplicate x ys)
+mulVals (Str xs) (Int y)    = Right $ Str (concat $ genericReplicate y xs)
 mulVals x y = Left $ EvaluationError $ TypeError $ "Multiplication is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
 
 divVals :: Val -> Val -> Either Error Val

@@ -51,8 +51,8 @@ parseStmt (Ident "print" : Delimiter LParen : toks) = do
   (toks', expr) <- parseExpr toks
   toks'' <- checkTok (Delimiter RParen) toks'
   Right (toks'', Print expr)
-parseStmt tks@(Ident x : Delimiter LParen : toks) = do 
-  (toks', expr) <- parseExpr tks 
+parseStmt tks@(Ident x : Delimiter LParen : toks) = do
+  (toks', expr) <- parseExpr tks
   Right (toks',ExprStmt expr)
 parseStmt (Ident x : tk : toks) = case lookup tk parseStmtLookup of
   Just eConst -> do
@@ -109,7 +109,7 @@ parseStmtLookup =
 
 parseExpr :: Through [Token] ([Token], Expr)
 parseExpr (Ident x : Delimiter LParen : toks) = do
-  parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) [] (Delimiter LParen : toks)
+  parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) parseAtom [] (Delimiter LParen : toks)
 parseExpr (Keyword Not : toks) = do
   (toks', comp) <- parseComparison toks
   Right (toks', NotExp comp)
@@ -210,36 +210,26 @@ parseAtom (Delimiter LParen : toks) = do
   toks'' <- checkTok (Delimiter RParen) toks'
   Right (toks'', expr)
 parseAtom tks@(Delimiter LSquare : toks) = do
-  parseIterable (Delimiter LSquare) (Delimiter RSquare) (ValExp . List) [] tks
+  parseIterable (Delimiter LSquare) (Delimiter RSquare) (ValExp . List) parseAtom [] tks
 parseAtom tks@(Delimiter LBrace : toks) = do
-  parseDict [] tks
-  where
-    -- this can be done using parseIterable
-    parseDict :: [(Expr, Expr)] -> Through [Token] ([Token], Expr)
-    parseDict pairs (Delimiter LBrace : toks) = do
-      (toks', pair) <- parsePair toks
-      parseDict (pair : pairs) toks'
-    parseDict pairs (Delimiter RBrace : toks) = Right (toks, ValExp $ Dict $ reverse pairs)
-    parseDict pairs (Delimiter Comma : toks) = do
-      (toks', pair) <- parsePair toks
-      parseDict (pair : pairs) toks'
-    parseDict exprs toks = Left $ ParsingError (Unexpected (mHead toks) (Delimiter RBrace))
-    parsePair :: Through [Token] ([Token], (Expr, Expr))
-    parsePair toks = do
-      (toks', key) <- parseAtom toks
-      (toks'', value) <-
-          checkTok (Delimiter Colon) toks'
-          >>= parseAtom
-      Right(toks'', (key, value))
+  parseIterable (Delimiter LBrace) (Delimiter RBrace) (ValExp . Dict) parsePair [] tks
 parseAtom tks = Left (ParsingError $ ExprNotFound $ mHead tks)
 
-parseIterable :: Token -> Token -> ([Expr] -> Expr) -> [Expr] -> Through [Token] ([Token], Expr)
-parseIterable startTok endTok eConst exprs (tok : toks) 
-  | tok == startTok = do 
-    (toks', expr) <- parseAtom toks
-    parseIterable startTok endTok eConst (expr : exprs) toks' 
+parsePair :: Through [Token] ([Token], (Expr, Expr))
+parsePair toks = do
+  (toks', key) <- parseAtom toks
+  (toks'', value) <-
+      checkTok (Delimiter Colon) toks'
+      >>= parseAtom
+  Right (toks'', (key, value))
+
+parseIterable :: Token -> Token -> ([a] -> Expr) -> Through [Token] ([Token], a) -> [a] -> Through [Token] ([Token], Expr)
+parseIterable startTok endTok eConst func exprs (tok : toks)
+  | tok == startTok = do
+    (toks', expr) <- func toks
+    parseIterable startTok endTok eConst func (expr : exprs) toks'
   | tok == endTok = Right (toks, eConst $ reverse exprs)
-parseIterable startTok endTok eConst exprs (Delimiter Comma : toks) = do 
-  (toks',expr) <- parseAtom toks
-  parseIterable startTok endTok eConst (expr : exprs) toks' 
-parseIterable startTok endTok eConst exprs toks = Left $ ParsingError (Unexpected (mHead toks) endTok)
+parseIterable startTok endTok eConst func exprs (Delimiter Comma : toks) = do
+  (toks',expr) <- func toks
+  parseIterable startTok endTok eConst func (expr : exprs) toks'
+parseIterable startTok endTok eConst func exprs toks = Left $ ParsingError (Unexpected (mHead toks) endTok)

@@ -236,8 +236,8 @@ valueTypeTests =
   [ tokenise "42" @?= Right [Val (Int 42)],
     tokenise "3.14" @?= Right [Val (Float 3.14)],
     tokenise "\"Hello, World!\"" @?= Right [Val (Str "Hello, World!")],
-    tokenise "True" @?= Right [Val TrueVal],
-    tokenise "False" @?= Right [Val FalseVal],
+    tokenise "True" @?= Right [Val (Bool True)],
+    tokenise "False" @?= Right [Val (Bool False)],
     tokenise "None" @?= Right [Val NoneVal]
   ]
 
@@ -246,7 +246,7 @@ indentationTests =
   [ tokenise "if True:\n    x = 1\n    y = 2\nelse:\n    z = 3"
       @?= Right
         [ Keyword If,
-          Val TrueVal,
+          Val (Bool True),
           Delimiter Colon,
           BlockStart,
           Ident "x",

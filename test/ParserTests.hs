@@ -10,9 +10,9 @@ import Types
 
 parserTests :: [TestTree]
 parserTests =
-  [testGroup "Parsing expressions" (numberedTests parseTests),
-   testGroup "Additional parsing tests" (numberedTests additionalParseTests),
-   testGroup "Parsing Error Test" (numberedTests parserErrorTests)
+  [ testGroup "Parsing expressions" (numberedTests parseTests),
+    testGroup "Additional parsing tests" (numberedTests additionalParseTests),
+    testGroup "Parsing Error Test" (numberedTests parserErrorTests)
   ]
 
 parseTests :: [Assertion]
@@ -30,10 +30,10 @@ parseTests =
            Keyword Else, Delimiter Colon, BlockStart, 
            Ident "print", Delimiter LParen, Val (Str "negative"), Delimiter RParen, BlockEnd] 
     @?= Right [Cond (GTEq (Identifier "x") (ValExp (Int 0))) 
-              [ExprStmt (FunctionCall "print" (ValExp (Str "positive")))]
-              [ExprStmt (FunctionCall "print" (ValExp (Str "negative")))]]
+              [Print (ValExp (Str "positive"))]
+              [Print (ValExp (Str "negative"))]]
   , parse [Ident "print", Delimiter LParen, Val (Str "Hello, World!"), Delimiter RParen] 
-    @?= Right [ExprStmt (FunctionCall "print" (ValExp (Str "Hello, World!")))]
+    @?= Right [Print (ValExp (Str "Hello, World!"))]
   , parse [Ident "result", Delimiter EqDelim, 
            Val (Int 2), Operator PowOp, Delimiter LParen, 
            Val (Int 3), Operator Plus, Val (Int 4), Operator Times, Val (Int 5), 
@@ -55,7 +55,7 @@ additionalParseTests :: [Assertion]
 additionalParseTests =
   [ -- Nested function calls
     parse [Ident "print", Delimiter LParen, Ident "str", Delimiter LParen, Ident "len", Delimiter LParen, Ident "exampleString", Delimiter RParen, Delimiter RParen, Delimiter RParen]
-    @?= Right [ExprStmt (FunctionCall "print" (FunctionCall "str" (FunctionCall "len" (Identifier "exampleString"))))]
+    @?= Right [Print (FunctionCall "str" [FunctionCall "len" [Identifier "exampleString"]])]
 
   -- Multiple nested conditions
   , parse [Keyword If, Ident "x", Operator GreaterThanOp, Val (Int 0), Delimiter Colon, BlockStart,
@@ -68,9 +68,9 @@ additionalParseTests =
            Ident "print", Delimiter LParen, Val (Str "c"), Delimiter RParen, BlockEnd]
     @?= Right [Cond (GreaterThan (Identifier "x") (ValExp (Int 0)))
                [Cond (LessThan (Identifier "y") (ValExp (Int 10)))
-                [ExprStmt (FunctionCall "print" (ValExp (Str "a")))]
-                [ExprStmt (FunctionCall "print" (ValExp (Str "b")))]]
-               [ExprStmt (FunctionCall "print" (ValExp (Str "c")))]]
+                [Print (ValExp (Str "a"))]
+                [Print (ValExp (Str "b"))]]
+               [Print (ValExp (Str "c"))]]
 
   -- Complex arithmetic expression with parentheses
   , parse [Ident "result", Delimiter EqDelim, 

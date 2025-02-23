@@ -1,5 +1,5 @@
 module Types where
-import Control.Monad.Trans.Except (ExceptT)
+import Control.Monad.Trans.Except (ExceptT, throwE)
 import Data.Typeable (Typeable, typeOf)
 import Data.List (intercalate)
 
@@ -162,8 +162,6 @@ data Val
   | Float Double
   | Str String
   | Bool Bool
-  | TrueVal 
-  | FalseVal
   | NoneVal
   | List [Expr] 
   deriving (Eq, Typeable)
@@ -173,10 +171,8 @@ instance Show Val where
   show (Float f) = show f
   show (Str s) = s
   show (Bool b) = show b
-  show TrueVal = "True"
-  show FalseVal = "False"
   show NoneVal = "None"
-  show (List vs) = "[" ++ intercalate ", " (map show vs) ++ "]"
+  show (List vs) = "[" ++ intercalate ", " (map valToStr vs) ++ "]"
 
 type Program = Block
 
@@ -215,13 +211,15 @@ data Expr
   | Eq Expr Expr 
   | NotEq Expr Expr 
   | Identifier String
-  -- this should be changed to FunctionCall String [Expr] later
-  | FunctionCall String Expr
-  deriving (Eq, Typeable)
+  | FunctionCall String [Expr]
+  deriving (Eq, Show, Typeable)
 
-instance Show Expr where 
-  show (ValExp val) = show val  
-  show x = show x
+
+valToStr :: Expr -> String 
+valToStr (ValExp val) = show val 
+valToStr (Identifier x) = x
+valToStr x = show x
+
 
 showType :: Typeable a => a -> String 
 showType x = show (typeOf x)

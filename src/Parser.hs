@@ -86,6 +86,16 @@ parseStmt (Keyword If : toks) = do
 parseStmt (Keyword Return : toks) = do
   (toks', expr) <- parseExpr toks
   Right (toks', Ret expr)
+parseStmt (Keyword Def : Ident funcName : toks) = do 
+  -- A way to get a list of expressions without changing parseIterable/making a 
+  -- new helper function
+  (toks',expr) <- parseIterable (Delimiter LParen) (Delimiter RParen) (ValExp . List) parseAtom [] toks
+  toks'' <- checkTok (Delimiter Colon) toks' >>= checkTok BlockStart
+  case expr of 
+    ValExp (List es) -> do 
+      (toks''',b) <- parseBlock toks''
+      Right (toks''', FuncDef funcName es b)
+    _ -> Left $ ParsingError UnknownError
 parseStmt toks = do
   (toks', expr) <- parseExpr toks
   Right (toks', ExprStmt expr)

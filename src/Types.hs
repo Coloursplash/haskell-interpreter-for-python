@@ -43,6 +43,7 @@ data ParsingError
   | SyntaxError String
   | IndentationError String
   | Unexpected (Maybe Token) Token
+  | UnknownError
   deriving (Eq, Show, Typeable)
 
 -- Evaluation errors
@@ -185,6 +186,8 @@ data Stmt
   = Asgn String Expr
   | While Expr Block
   | Cond Expr Block Block
+  -- This might be changed later but this is how i currently envision it working
+  | FuncDef String [Expr] Block
   | ExprStmt Expr
   | Ret Expr
   | Print Expr

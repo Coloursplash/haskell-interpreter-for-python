@@ -1,10 +1,12 @@
 {-# OPTIONS_GHC -Wno-unused-local-binds #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# LANGUAGE BlockArguments #-}
 
-module Parser (parse, parseExpr, parseStmt) where
+module Parser (parse, parseExpr, parseStmt,parseIterable) where
 
 import Tokeniser (tokenise)
 import Types
+import GHC.IO (unsafePerformIO)
 
 mHead :: [a] -> Maybe a
 mHead (x : _) = Just x
@@ -49,6 +51,9 @@ parseStmt (Ident "print" : Delimiter LParen : toks) = do
   (toks', expr) <- parseExpr toks
   toks'' <- checkTok (Delimiter RParen) toks'
   Right (toks'', Print expr)
+parseStmt tks@(Ident x : Delimiter LParen : toks) = do 
+  (toks', expr) <- parseExpr tks 
+  Right (toks',ExprStmt expr)
 parseStmt (Ident x : tk : toks) = case lookup tk parseStmtLookup of
   Just eConst -> do
     (toks', expr) <- parseExpr toks
@@ -104,17 +109,12 @@ parseStmtLookup =
 
 parseExpr :: Through [Token] ([Token], Expr)
 parseExpr (Ident x : Delimiter LParen : toks) = do
-  (toks', expr) <- parseExpr toks
-  toks'' <- checkTok (Delimiter RParen) toks'
-  Right (toks'', FunctionCall x expr)
+  parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) [] (Delimiter LParen : toks)
 parseExpr (Keyword Not : toks) = do
   (toks', comp) <- parseComparison toks
   Right (toks', NotExp comp)
 parseExpr toks = do
   (toks', expr) <- parseComparison toks
-  -- harder to read than previous version but saves a lot of space and looks
-  -- a lot cleaner. (Will marginally increase computation time but unless we
-  -- are parsing tens of thousands of lines it will have no meaningful impact)
   case toks' of
     [] -> Right (toks', expr)
     (tk : toks'') -> case lookup tk parseExprLookup of
@@ -210,17 +210,16 @@ parseAtom (Delimiter LParen : toks) = do
   toks'' <- checkTok (Delimiter RParen) toks'
   Right (toks'', expr)
 parseAtom tks@(Delimiter LSquare : toks) = do 
-  parseList [] tks
-  where 
-    parseList :: [Expr] -> Through [Token] ([Token], Expr)
-    parseList exprs (Delimiter LSquare : toks) = do 
-      (toks', expr) <- parseAtom toks
-      parseList (expr : exprs) toks' 
-    parseList exprs (Delimiter RSquare : toks) = Right (toks, ValExp $ List $ reverse exprs)
-    parseList exprs (Delimiter Comma : toks) = do 
-      (toks',expr) <- parseAtom toks
-      parseList (expr : exprs) toks' 
-    parseList exprs toks = Left $ ParsingError (Unexpected (mHead toks) (Delimiter RBrace))
-
-
+  parseIterable (Delimiter LSquare) (Delimiter RSquare) (ValExp . List) [] tks
 parseAtom tks = Left (ParsingError $ ExprNotFound $ mHead tks)
+
+parseIterable :: Token -> Token -> ([Expr] -> Expr) -> [Expr] -> Through [Token] ([Token], Expr)
+parseIterable startTok endTok eConst exprs (tok : toks) 
+  | tok == startTok = do 
+    (toks', expr) <- parseAtom toks
+    parseIterable startTok endTok eConst (expr : exprs) toks' 
+  | tok == endTok = Right (toks, eConst $ reverse exprs)
+parseIterable startTok endTok eConst exprs (Delimiter Comma : toks) = do 
+  (toks',expr) <- parseAtom toks
+  parseIterable startTok endTok eConst (expr : exprs) toks' 
+parseIterable startTok endTok eConst exprs toks = Left $ ParsingError (Unexpected (mHead toks) endTok)

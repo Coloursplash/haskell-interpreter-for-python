@@ -50,6 +50,7 @@ evalExpr vars (Identifier name) = do
   case lookup name vars of
     Just val -> Right val
     Nothing -> Left (EvaluationError (NameError $ "Variable '" ++ name ++ "' is not defined."))
+evalExpr vars (FunctionCall s es) = undefined
 evalExpr vars (Add e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2

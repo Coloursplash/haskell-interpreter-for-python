@@ -16,10 +16,16 @@ import Types
 runInterpreter :: ThroughIO String ()
 runInterpreter input = do
   tokens <- except $ tokenise input
+  liftIO $ putStrLn "Finished Tokenisation"
   ast <- except $ parse tokens
+  liftIO $ putStrLn "Tokens Parsed\n"
   -- returns varList for now
+  liftIO $ putStrLn "Executing...\n--------------"
   varList <- evaluate ast
+  liftIO $ putStrLn "--------------\nExecution Complete"
+  liftIO $ putStrLn "\nAll variables and their values post-execution:"
   liftIO $ print varList
+  liftIO $ putStrLn "--------------------------------------------------------------"
 
 getFileContents :: ThroughIO [String] (Either Error String)
 getFileContents [] = throwE (FileError NoFilePathProvided)
@@ -30,6 +36,9 @@ getFileContents (path : _) = do
 main :: IO ()
 main = do
   args <- getArgs
+
+  putStrLn "--------------------------------------------------------------"
+  putStrLn "Starting...\n"
   result <- runExceptT $ do
     fileContents <- getFileContents args
     case fileContents of

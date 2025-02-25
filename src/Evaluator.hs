@@ -5,7 +5,7 @@ module Evaluator (evaluate) where
 import Data.List (genericReplicate, intercalate)
 import Data.Maybe (fromJust)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except
+import Control.Monad.Trans.Except ( except, throwE )
 import Control.Monad (foldM)
 import Types
 
@@ -43,7 +43,7 @@ evalStmt vars (Print es) = do
     return vars
     where
       evalPrint :: [Expr] -> VarList -> ThroughIO [Expr] ()
-      evalPrint [] vars vs = liftIO $ print $ unwords (reverse $ map valToStr vs)
+      evalPrint [] vars vs = liftIO $ putStrLn $ unwords (reverse $ map valToStr vs)
       evalPrint (e:es) vars vs = do 
         val <- except $ evalExpr vars e
         evalPrint es vars (ValExp val:vs)

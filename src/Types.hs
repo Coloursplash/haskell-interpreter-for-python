@@ -184,11 +184,10 @@ type Block = [Stmt]
 
 data Stmt
   = Asgn String Expr
-  | Input String [Expr]
   | While Expr Block
   | Cond Expr Block Block
-  -- This might be changed later but this is how i currently envision it working
-  | FuncDef String [Expr] Block
+  | -- This might be changed later but this is how i currently envision it working
+    FuncDef String [Expr] Block
   | ExprStmt Expr
   | Ret Expr
   | Print [Expr]
@@ -218,15 +217,14 @@ data Expr
   | Eq Expr Expr
   | NotEq Expr Expr
   | Identifier String
+  | Input [Expr]
   | FunctionCall String [Expr]
   deriving (Eq, Show, Typeable)
 
-
-valToStr :: Expr -> String 
-valToStr (ValExp val) = show val 
+valToStr :: Expr -> String
+valToStr (ValExp val) = show val
 valToStr (Identifier x) = x
 valToStr x = show x
-
 
 showType :: (Typeable a) => a -> String
 showType x = show (typeOf x)

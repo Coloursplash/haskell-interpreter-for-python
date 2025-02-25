@@ -2,12 +2,14 @@
 
 module Evaluator (evaluate) where
 
-import Control.Monad (foldM)
+import Control.Monad (foldM, join)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except (except, throwE)
+import Control.Monad.Trans.Except (except, runExceptT, throwE)
+import Data.Bits (Bits (xor))
 import Data.List (genericReplicate, intercalate)
 import Data.Maybe (fromJust)
 import Types
+import GHC.IO (unsafePerformIO)
 
 -- | Evaluates the AST (returns a string for now)
 evaluate :: ThroughIO Block VarList
@@ -17,16 +19,6 @@ evalBlock :: VarList -> ThroughIO Block VarList
 evalBlock = foldM evalStmt
 
 evalStmt :: VarList -> ThroughIO Stmt VarList
-evalStmt vars (Input str es) = do
-  evalInput es vars []
-  val <- liftIO getLine
-  return $ update str (Str val) vars
-  where
-    evalInput :: [Expr] -> VarList -> ThroughIO [Expr] ()
-    evalInput [] vars vs = liftIO $ putStr $ unwords (reverse $ map valToStr vs)
-    evalInput (e : es) vars vs = do
-      val <- except $ evalExpr vars e
-      evalInput es vars (ValExp val : vs)
 evalStmt vars (Asgn str e) = do
   vars' <- except $ evalExpr vars e
   return $ update str vars' vars
@@ -65,6 +57,18 @@ evalExpr vars (Identifier name) = do
   case lookup name vars of
     Just val -> Right val
     Nothing -> Left (EvaluationError (NameError $ "Variable '" ++ name ++ "' is not defined."))
+evalExpr vars (Input es) = do
+  unsafePerformIO $ runExceptT $ evalInput es vars []
+  where
+    evalInput :: [Expr] -> VarList -> ThroughIO [Expr] Val
+    evalInput [] vars vs = do
+      liftIO $ putStr $ unwords (reverse $ map valToStr vs)
+      inp <- liftIO getLine
+      liftIO $ putStrLn ""
+      return $ Str inp
+    evalInput (e : es) vars vs = do
+      val <- except $ evalExpr vars e
+      evalInput es vars (ValExp val : vs)
 evalExpr vars (FunctionCall s es) = undefined
 evalExpr vars (Add e1 e2) = do
   val1 <- evalExpr vars e1

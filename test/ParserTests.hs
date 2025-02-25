@@ -16,7 +16,7 @@ parserTests =
     testGroup "Additional parsing tests" (numberedTests additionalParseTests),
     testGroup "Parsing Error Test" (numberedTests parserErrorTests)
   ]
-  
+
 parseTests :: [Assertion]
 parseTests =
   [ parse [Ident "x", Delimiter EqDelim, Val (Int 5)]

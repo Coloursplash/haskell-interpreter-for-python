@@ -1,12 +1,12 @@
+{-# LANGUAGE BlockArguments #-}
 {-# OPTIONS_GHC -Wno-unused-local-binds #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
-{-# LANGUAGE BlockArguments #-}
 
-module Parser (parse, parseExpr, parseStmt,parseIterable) where
+module Parser (parse, parseExpr, parseStmt, parseIterable) where
 
+import GHC.IO (unsafePerformIO)
 import Tokeniser (tokenise)
 import Types
-import GHC.IO (unsafePerformIO)
 
 mHead :: [a] -> Maybe a
 mHead (x : _) = Just x
@@ -41,9 +41,6 @@ parseBlock toks = parseBlock' [] (BlockStart : toks)
 -- Did not implement If statements/For statements as we havent fully discussed
 -- how to handle those
 parseStmt :: Through [Token] ([Token], Stmt)
-parseStmt (Ident x : Operator EqOp : toks) = do
-  (toks', expr) <- parseExpr toks
-  Right (toks', Asgn x expr)
 parseStmt (Ident x : Delimiter EqDelim : toks) = do
   (toks', expr) <- parseExpr toks
   Right (toks', Asgn x expr)
@@ -51,7 +48,7 @@ parseStmt (Ident "print" : Delimiter LParen : toks) = do
   parseIterable (Delimiter LParen) (Delimiter RParen) Print parseExpr [] (Delimiter LParen : toks)
 parseStmt tks@(Ident x : Delimiter LParen : toks) = do
   (toks', expr) <- parseExpr tks
-  Right (toks',ExprStmt expr)
+  Right (toks', ExprStmt expr)
 parseStmt (Ident x : tk : toks) = case lookup tk parseStmtLookup of
   Just eConst -> do
     (toks', expr) <- parseExpr toks
@@ -84,14 +81,14 @@ parseStmt (Keyword If : toks) = do
 parseStmt (Keyword Return : toks) = do
   (toks', expr) <- parseExpr toks
   Right (toks', Ret expr)
-parseStmt (Keyword Def : Ident funcName : toks) = do 
-  -- A way to get a list of expressions without changing parseIterable/making a 
+parseStmt (Keyword Def : Ident funcName : toks) = do
+  -- A way to get a list of expressions without changing parseIterable/making a
   -- new helper function
-  (toks',expr) <- parseIterable (Delimiter LParen) (Delimiter RParen) (ValExp . List) parseAtom [] toks
+  (toks', expr) <- parseIterable (Delimiter LParen) (Delimiter RParen) (ValExp . List) parseAtom [] toks
   toks'' <- checkTok (Delimiter Colon) toks' >>= checkTok BlockStart
-  case expr of 
-    ValExp (List es) -> do 
-      (toks''',b) <- parseBlock toks''
+  case expr of
+    ValExp (List es) -> do
+      (toks''', b) <- parseBlock toks''
       Right (toks''', FuncDef funcName es b)
     _ -> Left $ ParsingError UnknownError
 parseStmt toks = do
@@ -116,6 +113,8 @@ parseStmtLookup =
   ]
 
 parseExpr :: Through [Token] ([Token], Expr)
+parseExpr (Ident "input" : Delimiter LParen : toks) = do
+  parseIterable (Delimiter LParen) (Delimiter RParen) Input parseExpr [] (Delimiter LParen : toks)
 parseExpr (Ident x : Delimiter LParen : toks) = do
   parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) parseAtom [] (Delimiter LParen : toks)
 parseExpr (Keyword Not : toks) = do
@@ -227,17 +226,17 @@ parsePair :: Through [Token] ([Token], (Expr, Expr))
 parsePair toks = do
   (toks', key) <- parseAtom toks
   (toks'', value) <-
-      checkTok (Delimiter Colon) toks'
+    checkTok (Delimiter Colon) toks'
       >>= parseAtom
   Right (toks'', (key, value))
 
 parseIterable :: Token -> Token -> ([a] -> b) -> Through [Token] ([Token], a) -> [a] -> Through [Token] ([Token], b)
 parseIterable startTok endTok eConst func exprs (tok : toks)
   | tok == startTok = do
-    (toks', expr) <- func toks
-    parseIterable startTok endTok eConst func (expr : exprs) toks'
+      (toks', expr) <- func toks
+      parseIterable startTok endTok eConst func (expr : exprs) toks'
   | tok == endTok = Right (toks, eConst $ reverse exprs)
 parseIterable startTok endTok eConst func exprs (Delimiter Comma : toks) = do
-  (toks',expr) <- func toks
+  (toks', expr) <- func toks
   parseIterable startTok endTok eConst func (expr : exprs) toks'
 parseIterable startTok endTok eConst func exprs toks = Left $ ParsingError (Unexpected (mHead toks) endTok)

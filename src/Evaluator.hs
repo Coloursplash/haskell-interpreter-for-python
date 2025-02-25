@@ -2,11 +2,11 @@
 
 module Evaluator (evaluate) where
 
+import Control.Monad (foldM)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Except (except, throwE)
 import Data.List (genericReplicate, intercalate)
 import Data.Maybe (fromJust)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except ( except, throwE )
-import Control.Monad (foldM)
 import Types
 
 -- | Evaluates the AST (returns a string for now)
@@ -17,6 +17,16 @@ evalBlock :: VarList -> ThroughIO Block VarList
 evalBlock = foldM evalStmt
 
 evalStmt :: VarList -> ThroughIO Stmt VarList
+evalStmt vars (Input str es) = do
+  evalInput es vars []
+  val <- liftIO getLine
+  return $ update str (Str val) vars
+  where
+    evalInput :: [Expr] -> VarList -> ThroughIO [Expr] ()
+    evalInput [] vars vs = liftIO $ putStr $ unwords (reverse $ map valToStr vs)
+    evalInput (e : es) vars vs = do
+      val <- except $ evalExpr vars e
+      evalInput es vars (ValExp val : vs)
 evalStmt vars (Asgn str e) = do
   vars' <- except $ evalExpr vars e
   return $ update str vars' vars
@@ -39,14 +49,14 @@ evalStmt vars (ExprStmt e) = do
   val <- except $ evalExpr vars e
   return vars
 evalStmt vars (Print es) = do
-    evalPrint es vars []
-    return vars
-    where
-      evalPrint :: [Expr] -> VarList -> ThroughIO [Expr] ()
-      evalPrint [] vars vs = liftIO $ putStrLn $ unwords (reverse $ map valToStr vs)
-      evalPrint (e:es) vars vs = do 
-        val <- except $ evalExpr vars e
-        evalPrint es vars (ValExp val:vs)
+  evalPrint es vars []
+  return vars
+  where
+    evalPrint :: [Expr] -> VarList -> ThroughIO [Expr] ()
+    evalPrint [] vars vs = liftIO $ putStrLn $ unwords (reverse $ map valToStr vs)
+    evalPrint (e : es) vars vs = do
+      val <- except $ evalExpr vars e
+      evalPrint es vars (ValExp val : vs)
 evalStmt vars (Ret e) = undefined
 
 evalExpr :: VarList -> Through Expr Val
@@ -156,14 +166,14 @@ subVals (Float x) (Int y) = Right $ Float (x - fromIntegral y)
 subVals x y = Left $ EvaluationError $ TypeError $ "Subtraction is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
 
 mulVals :: Val -> Val -> Either Error Val
-mulVals (Int x) (Int y)     = Right $ Int (x * y)
+mulVals (Int x) (Int y) = Right $ Int (x * y)
 mulVals (Float x) (Float y) = Right $ Float (x * y)
-mulVals (Int x) (Float y)   = Right $ Float (fromIntegral x * y)
-mulVals (Float x) (Int y)   = Right $ Float (x * fromIntegral y)
-mulVals (List xs) (Int y)   = Right $ List (concat $ genericReplicate y xs)
-mulVals (Int x) (List ys)   = Right $ List (concat $ genericReplicate x ys)
-mulVals (Int x) (Str ys)    = Right $ Str (concat $ genericReplicate x ys)
-mulVals (Str xs) (Int y)    = Right $ Str (concat $ genericReplicate y xs)
+mulVals (Int x) (Float y) = Right $ Float (fromIntegral x * y)
+mulVals (Float x) (Int y) = Right $ Float (x * fromIntegral y)
+mulVals (List xs) (Int y) = Right $ List (concat $ genericReplicate y xs)
+mulVals (Int x) (List ys) = Right $ List (concat $ genericReplicate x ys)
+mulVals (Int x) (Str ys) = Right $ Str (concat $ genericReplicate x ys)
+mulVals (Str xs) (Int y) = Right $ Str (concat $ genericReplicate y xs)
 mulVals x y = Left $ EvaluationError $ TypeError $ "Multiplication is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
 
 divVals :: Val -> Val -> Either Error Val

@@ -184,6 +184,7 @@ type Block = [Stmt]
 
 data Stmt
   = Asgn String Expr
+  | Input String [Expr]
   | While Expr Block
   | Cond Expr Block Block
   -- This might be changed later but this is how i currently envision it working

@@ -48,9 +48,7 @@ parseStmt (Ident x : Delimiter EqDelim : toks) = do
   (toks', expr) <- parseExpr toks
   Right (toks', Asgn x expr)
 parseStmt (Ident "print" : Delimiter LParen : toks) = do
-  (toks', expr) <- parseExpr toks
-  toks'' <- checkTok (Delimiter RParen) toks'
-  Right (toks'', Print expr)
+  parseIterable (Delimiter LParen) (Delimiter RParen) Print parseExpr [] (Delimiter LParen : toks)
 parseStmt tks@(Ident x : Delimiter LParen : toks) = do
   (toks', expr) <- parseExpr tks
   Right (toks',ExprStmt expr)
@@ -233,7 +231,7 @@ parsePair toks = do
       >>= parseAtom
   Right (toks'', (key, value))
 
-parseIterable :: Token -> Token -> ([a] -> Expr) -> Through [Token] ([Token], a) -> [a] -> Through [Token] ([Token], Expr)
+parseIterable :: Token -> Token -> ([a] -> b) -> Through [Token] ([Token], a) -> [a] -> Through [Token] ([Token], b)
 parseIterable startTok endTok eConst func exprs (tok : toks)
   | tok == startTok = do
     (toks', expr) <- func toks

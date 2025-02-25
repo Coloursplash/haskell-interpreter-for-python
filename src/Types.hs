@@ -190,7 +190,7 @@ data Stmt
   | FuncDef String [Expr] Block
   | ExprStmt Expr
   | Ret Expr
-  | Print Expr
+  | Print [Expr]
   deriving (Eq, Show, Typeable)
 
 data Expr

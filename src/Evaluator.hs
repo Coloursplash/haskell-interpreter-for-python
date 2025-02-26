@@ -1,13 +1,12 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
+
 module Evaluator (evaluate) where
 
-import Control.Monad (foldM, join)
-import System.IO ( hFlush, stdout )
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except (except, runExceptT, throwE)
-import Data.Bits (Bits (xor))
+import Control.Monad.Trans.Except (except, throwE)
 import Data.List (genericReplicate, intercalate)
 import Data.Maybe (fromJust)
+import System.IO (hFlush, stdout)
 import Types
 
 -- | Evaluates the AST (returns a string for now)
@@ -16,12 +15,11 @@ evaluate = evalBlock []
 
 evalBlock :: VarList -> ThroughIO Block VarList
 evalBlock vars [] = return vars
-evalBlock vars (stmt:stmts) = do 
-  vars' <- evalStmt vars stmt 
-  case vars' of 
-    retVal@[("%return_val",x)] -> return retVal 
+evalBlock vars (stmt : stmts) = do
+  vars' <- evalStmt vars stmt
+  case vars' of
+    retVal@[("%return_val", x)] -> return retVal
     _ -> evalBlock vars' stmts
-
 
 evalStmt :: VarList -> ThroughIO Stmt VarList
 evalStmt vars (Asgn str e) = do
@@ -61,18 +59,18 @@ evalStmt vars (ForLoop str e b) = do
       evalForLoop str vars xs b
     x -> throwE $ EvaluationError $ InvalidArgumentsError $ "For loop expected iterable type, but got " ++ showType x ++ "."
 evalStmt vars (Ret e) = do
-  val <- evalExpr vars e 
-  return [("%return_val%",val)]
+  val <- evalExpr vars e
+  return [("%return_val%", val)]
 evalStmt vars (FuncDef str strs b) = return $ update str (Func strs b) vars
 
 evalForLoop :: String -> VarList -> [Expr] -> ThroughIO Block VarList
-evalForLoop _ vars [] _       = return vars 
-evalForLoop str vars (e:es) b = do 
-  val <- evalExpr vars e 
-  let vars' = update str val vars in 
-    do 
-      vars'' <- evalBlock vars' b 
-      evalForLoop str vars'' es b 
+evalForLoop _ vars [] _ = return vars
+evalForLoop str vars (e : es) b = do
+  val <- evalExpr vars e
+  let vars' = update str val vars
+   in do
+        vars'' <- evalBlock vars' b
+        evalForLoop str vars'' es b
 
 evalExpr :: VarList -> ThroughIO Expr Val
 evalExpr vars (ValExp v) = return v
@@ -83,52 +81,53 @@ evalExpr vars (Identifier name) = do
 -- we need to find a way to rewrite this without unsafe perform IO
 -- that might require us to change the entire function to ThroughIO
 evalExpr vars (Input es) = do
-  evalInput es vars 
-  where 
-    evalInput es vars = do 
+  evalInput es vars
+  where
+    evalInput es vars = do
       vals <- mapM (evalExpr vars) es
       -- no matter what i tried, i couldnt get putStr to print before getLine
-      liftIO $ putStr $ unwords (reverse $ map show vals) 
+      liftIO $ putStr $ unwords (reverse $ map show vals)
       liftIO $ hFlush stdout
-      inp <- liftIO getLine 
+      inp <- liftIO getLine
       return $ Str inp
 
--- hard coded the 'int' and 'str' functions 
--- this could probably 
-evalExpr vars (FunctionCall "int" (e:es))
+-- hard coded the 'int' and 'str' functions
+-- this could probably
+evalExpr vars (FunctionCall "int" (e : es))
   | null es = do
-    val <- evalExpr vars e
-    case val of
-      (Str s) -> return $ Int $ read s
-      x -> throwE $ EvaluationError $ InvalidOperationError ("Cannot perform function 'int' on type '" ++ showType x ++ "'")
+      val <- evalExpr vars e
+      case val of
+        (Str s) -> return $ Int $ read s
+        x -> throwE $ EvaluationError $ InvalidOperationError ("Cannot perform function 'int' on type '" ++ showType x ++ "'")
   | otherwise = throwE $ EvaluationError $ InvalidArgumentsError ("Function 'int' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
-evalExpr vars (FunctionCall "str" (e:es))
+evalExpr vars (FunctionCall "str" (e : es))
   | null es = do
-    val <- evalExpr vars e
-    return $ Str $ show val
+      val <- evalExpr vars e
+      return $ Str $ show val
   | otherwise = throwE $ EvaluationError $ InvalidArgumentsError ("Function 'str' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
--- this would be easy to write in simple python so later on for simplicity, this could be treated like a normal 
+-- this would be easy to write in simple python so later on for simplicity, this could be treated like a normal
 -- function, but would be pre-computed/parsed
 evalExpr vars (FunctionCall "range" es)
   | len > 0 && len <= 3 = do
-    let nums = mapM (evalExpr vars) es in
-      do
-        nums' <- nums
-        case nums' of
-          [Int stop] -> return $ List [ValExp $ Int x | x <- [0..stop-1]]
-          [Int start, Int stop] -> if stop > start
-            then return $ List [ValExp $ Int x | x <- [start..stop-1]]
-            else throwE $ EvaluationError $ InvalidArgumentsError "In function 'range' the second argument should always be greater than the first"
-          [Int start, Int stop, Int step] -> return $ List [ValExp $ Int x | x <- [start,start+step..stop-signum step]]
+      let nums = mapM (evalExpr vars) es
+       in do
+            nums' <- nums
+            case nums' of
+              [Int stop] -> return $ List [ValExp $ Int x | x <- [0 .. stop - 1]]
+              [Int start, Int stop] ->
+                if stop > start
+                  then return $ List [ValExp $ Int x | x <- [start .. stop - 1]]
+                  else throwE $ EvaluationError $ InvalidArgumentsError "In function 'range' the second argument should always be greater than the first"
+              [Int start, Int stop, Int step] -> return $ List [ValExp $ Int x | x <- [start, start + step .. stop - signum step]]
   | otherwise = throwE $ EvaluationError $ InvalidArgumentsError ("Function 'range' takes 1-3 arguments, but " ++ show len ++ " were provided.")
   where
     len = length es
-evalExpr vars (FunctionCall s es) = do 
+evalExpr vars (FunctionCall s es) = do
   let func = lookup s vars
-  case func of 
-    Just (Func strs b) -> do 
+  case func of
+    Just (Func strs b) -> do
       vals <- mapM (evalExpr vars) es
-      let vars' = (s,Func strs b) : zip strs vals
+      let vars' = (s, Func strs b) : zip strs vals
       evalFunc vars' b
     Just x -> throwE $ EvaluationError $ InvalidOperationError "Cannot invoke non function"
     Nothing -> throwE $ EvaluationError $ InvalidOperationError $ s ++ " is not defined."
@@ -342,12 +341,12 @@ notEqVals x y = Right $ Bool (x /= y)
 -- however trying to get it working for simple programs first before dealing
 -- with more complex things like that
 evalFunc :: VarList -> ThroughIO Block Val
-evalFunc [("%return_val%",x)] [] = return x
+evalFunc [("%return_val%", x)] [] = return x
 evalFunc vars [] = return NoneVal
 evalFunc vars (Ret e : stmts) = evalExpr vars e
-evalFunc vars (s : stmts) = do 
+evalFunc vars (s : stmts) = do
   vars' <- evalStmt vars s
-  evalFunc vars' stmts     
+  evalFunc vars' stmts
 
 update :: String -> Val -> VarList -> VarList
 update str val vars = (str, val) : [(name, val') | (name, val') <- vars, name /= str]

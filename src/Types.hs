@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+
 module Types where
 
 import Control.Monad.Trans.Except (ExceptT)
@@ -65,11 +67,10 @@ data Token
   = Keyword Keyword
   | Operator Operator
   | Delimiter Delimiter
-  | -- Since python uses indentation for blocks
-    BlockStart
+  | BlockStart
   | BlockEnd
   | Val Val
-  | Ident String -- Can be variable or function name
+  | Ident String -- Can be variable or function name (this gets worked out during parsing)
   deriving (Eq, Show, Typeable)
 
 data Keyword
@@ -173,14 +174,15 @@ data Val
   deriving (Eq, Typeable)
 
 instance Show Val where
-  show (Int i) = show i
-  show (Float f) = show f
-  show (Str s) = s
-  show (Bool b) = show b
-  show NoneVal = "None"
-  show (List vs) = "[" ++ intercalate ", " (map valToStr vs) ++ "]"
-  show (Dict ps) = "{" ++ intercalate ", " (map (\(k, v) -> show k ++ ": " ++ show v) ps) ++ "}"
-  show (Func ss b) = "(" ++ intercalate ", " ss ++ ") -> " ++ show b 
+  show :: Val -> String
+  show (Int i)     = show i
+  show (Float f)   = show f
+  show (Str s)     = s
+  show (Bool b)    = show b
+  show NoneVal     = "None"
+  show (List vs)   = "[" ++ intercalate ", " (map valToStr vs) ++ "]"
+  show (Dict ps)   = "{" ++ intercalate ", " (map (\(k, v) -> show k ++ ": " ++ show v) ps) ++ "}"
+  show (Func ss b) = "(" ++ intercalate ", " ss ++ ") -> " ++ show b
 
 type Program = Block
 
@@ -190,10 +192,8 @@ data Stmt
   = Asgn String Expr
   | While Expr Block
   | Cond Expr Block Block
-  | -- This might be changed later but this is how i currently envision it working
-    FuncDef String [String] Block
-  | ForLoop String Expr Block -- This would be interpreted as for 'string' in 'expr' do 'block' 
-                              -- This is Expr in case there is a function call, such as range()
+  | FuncDef String [String] Block
+  | ForLoop String Expr Block -- This would be interpreted as for 'string' in 'expr' do 'block'
   | ExprStmt Expr
   | Ret Expr
   | Print [Expr]
@@ -228,7 +228,7 @@ data Expr
   deriving (Eq, Show, Typeable)
 
 valToStr :: Expr -> String
-valToStr (ValExp val) = show val
+valToStr (ValExp val)   = show val
 valToStr (Identifier x) = x
 valToStr x = show x
 

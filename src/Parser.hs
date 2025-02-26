@@ -71,17 +71,16 @@ parseStmt (Keyword If : toks) = do
     checkTok (Delimiter Colon) toks1
       >>= checkTok BlockStart
       >>= parseBlock
-  case toks2 of 
-    (Keyword Else:toks3) -> do
+  case toks2 of
+    (Keyword Else : toks3) -> do
       (toks4, b2) <- checkTok (Delimiter Colon) toks3 >>= checkTok BlockStart >>= parseBlock
       Right (toks4, Cond expr b1 b2)
-    (Keyword Elif:toks3) -> do 
-      (toks4,expr') <- parseExpr toks3
+    (Keyword Elif : toks3) -> do
+      (toks4, expr') <- parseExpr toks3
       (toks5, stmt) <- parseStmt (Keyword If : toks4)
       Right (toks5, Cond expr b1 [stmt])
-    toks3 -> do 
+    toks3 -> do
       Right (toks3, Cond expr b1 [])
-
 parseStmt (Keyword Return : toks) = do
   (toks', expr) <- parseExpr toks
   Right (toks', Ret expr)
@@ -95,18 +94,18 @@ parseStmt (Keyword Def : Ident funcName : toks) = do
       (toks''', b) <- parseBlock toks''
       strs <- getStrings es []
       Right (toks''', FuncDef funcName strs b)
-        where
-          getStrings :: [Expr] -> Through [String] [String]
-          getStrings [] strs = Right $ reverse strs 
-          getStrings (e:es) strs = 
-            case e of 
-              Identifier x -> getStrings es (x:strs)
-              x -> Left $ ParsingError $ InvalidTypeError $ "Expected type Identifier, but got " ++ showType x ++ "." 
+      where
+        getStrings :: [Expr] -> Through [String] [String]
+        getStrings [] strs = Right $ reverse strs
+        getStrings (e : es) strs =
+          case e of
+            Identifier x -> getStrings es (x : strs)
+            x -> Left $ ParsingError $ InvalidTypeError $ "Expected type Identifier, but got " ++ showType x ++ "."
     _ -> Left $ ParsingError UnknownError
-parseStmt (Keyword Def : toks) = Left $ ParsingError $ SyntaxError "Def keyword must be followed by the name of a function" 
-parseStmt (Keyword For : Ident x : Keyword In : toks) = do 
-  (toks',expr) <- parseExpr toks 
-  (toks'',b) <- checkTok (Delimiter Colon) toks' >>= checkTok BlockStart >>= parseBlock
+parseStmt (Keyword Def : toks) = Left $ ParsingError $ SyntaxError "Def keyword must be followed by the name of a function"
+parseStmt (Keyword For : Ident x : Keyword In : toks) = do
+  (toks', expr) <- parseExpr toks
+  (toks'', b) <- checkTok (Delimiter Colon) toks' >>= checkTok BlockStart >>= parseBlock
   Right (toks'', ForLoop x expr b)
 parseStmt (Keyword For : toks) = Left $ ParsingError $ SyntaxError "For keyword must be followed by some form of 'i in ..."
 parseStmt toks = do

@@ -1,7 +1,5 @@
 module ParserTests (parserTests) where
 
--- Assuming your Parser module exists
-
 import Data.Either (fromRight)
 import Parser (parse)
 import Test.Tasty (TestTree, testGroup)

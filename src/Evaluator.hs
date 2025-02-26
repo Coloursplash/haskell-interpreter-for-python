@@ -55,7 +55,9 @@ evalStmt vars (ForLoop str e b) = do
     List xs -> do
       evalForLoop str vars xs b
     x -> throwE $ EvaluationError $ InvalidArgumentsError $ "For loop expected iterable type, but got " ++ showType x ++ "."
-evalStmt vars (Ret e) = undefined
+evalStmt vars (Ret e) = do
+  val <- evalExpr vars e 
+  return [("%return_val%",val)]
 evalStmt vars (FuncDef str strs b) = return $ update str (Func strs b) vars
 
 evalForLoop :: String -> VarList -> [Expr] -> ThroughIO Block VarList
@@ -121,10 +123,8 @@ evalExpr vars (FunctionCall s es) = do
   case func of 
     Just (Func strs b) -> do 
       vals <- mapM (evalExpr vars) es
-      let vars' = zip strs vals 
-      -- should make custom evalFunc function
-      x <- evalBlock vars' b
-      return NoneVal
+      let vars' = (s,Func strs b) : zip strs vals
+      evalFunc vars' b
     Just x -> throwE $ EvaluationError $ InvalidOperationError "Cannot invoke non function"
     Nothing -> throwE $ EvaluationError $ InvalidOperationError $ s ++ " is not defined."
 evalExpr vars (Add e1 e2) = do
@@ -336,8 +336,12 @@ notEqVals x y = Right $ Bool (x /= y)
 -- technically should have type VarList -> Through Block [Val]
 -- however trying to get it working for simple programs first before dealing
 -- with more complex things like that
-evalFunc :: VarList -> Through Block Val
-evalFunc vars b = undefined
+evalFunc :: VarList -> ThroughIO Block Val
+evalFunc vars [] = return NoneVal
+evalFunc vars (Ret e : stmts) = evalExpr vars e
+evalFunc vars (s : stmts) = do 
+  vars' <- evalStmt vars s
+  evalFunc vars' stmts     
 
 update :: String -> Val -> VarList -> VarList
 update str val vars = (str, val) : [(name, val') | (name, val') <- vars, name /= str]

@@ -77,8 +77,8 @@ parseStmt (Keyword If : toks) = do
       Right (toks4, Cond expr b1 b2)
     (Keyword Elif:toks3) -> do 
       (toks4,expr') <- parseExpr toks3
-      (toks4, stmt) <- parseStmt (Keyword If : toks3)
-      Right (toks4, Cond expr b1 [stmt])
+      (toks5, stmt) <- parseStmt (Keyword If : toks4)
+      Right (toks5, Cond expr b1 [stmt])
     toks3 -> do 
       Right (toks3, Cond expr b1 [])
 
@@ -133,8 +133,6 @@ parseStmtLookup =
 parseExpr :: Through [Token] ([Token], Expr)
 parseExpr (Ident "input" : Delimiter LParen : toks) = do
   parseIterable (Delimiter LParen) (Delimiter RParen) Input parseExpr [] (Delimiter LParen : toks)
-parseExpr (Ident x : Delimiter LParen : toks) = do
-  parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) parseExpr [] (Delimiter LParen : toks)
 parseExpr (Keyword Not : toks) = do
   (toks', comp) <- parseComparison toks
   Right (toks', NotExp comp)
@@ -226,6 +224,8 @@ parseExponent toks = do
 
 -- handles lowest level of expressions - strings, ints etc
 parseAtom :: Through [Token] ([Token], Expr)
+parseAtom (Ident x : Delimiter LParen : toks) = do
+  parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) parseExpr [] (Delimiter LParen : toks)
 parseAtom (Ident x : toks) = Right (toks, Identifier x)
 parseAtom (Val x : toks) = Right (toks, ValExp x)
 parseAtom (Operator Minus : Val (Int x) : toks) = Right (toks, ValExp (Int (negate x)))

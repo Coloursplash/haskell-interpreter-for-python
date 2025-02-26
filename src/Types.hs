@@ -180,6 +180,7 @@ instance Show Val where
   show NoneVal = "None"
   show (List vs) = "[" ++ intercalate ", " (map valToStr vs) ++ "]"
   show (Dict ps) = "{" ++ intercalate ", " (map (\(k, v) -> show k ++ ": " ++ show v) ps) ++ "}"
+  show (Func ss b) = "(" ++ intercalate ", " ss ++ ") -> " ++ show b 
 
 type Program = Block
 

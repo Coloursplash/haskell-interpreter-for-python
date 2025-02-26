@@ -1,9 +1,8 @@
 def fib(n):
-    out = 1
     if n > 2:
-        out = fib(n-1) + fib(n-2)
-        
-    return out 
-    
+        return fib(n-1) + fib(n-2)
+    else:
+        return 1
+
 num = int(input("Which fibonacci number would you like to calculate: "))
 print("The " + str(num) + "th fibonacci number is: ",fib(num))

@@ -9,14 +9,19 @@ import Data.Bits (Bits (xor))
 import Data.List (genericReplicate, intercalate)
 import Data.Maybe (fromJust)
 import Types
-import GHC.IO (unsafePerformIO)
 
 -- | Evaluates the AST (returns a string for now)
 evaluate :: ThroughIO Block VarList
 evaluate = evalBlock []
 
 evalBlock :: VarList -> ThroughIO Block VarList
-evalBlock = foldM evalStmt
+evalBlock vars [] = return vars
+evalBlock vars (stmt:stmts) = do 
+  vars' <- evalStmt vars stmt 
+  case vars' of 
+    retVal@[("%return_val",x)] -> return retVal 
+    _ -> evalBlock vars' stmts
+
 
 evalStmt :: VarList -> ThroughIO Stmt VarList
 evalStmt vars (Asgn str e) = do
@@ -337,6 +342,7 @@ notEqVals x y = Right $ Bool (x /= y)
 -- however trying to get it working for simple programs first before dealing
 -- with more complex things like that
 evalFunc :: VarList -> ThroughIO Block Val
+evalFunc [("%return_val%",x)] [] = return x
 evalFunc vars [] = return NoneVal
 evalFunc vars (Ret e : stmts) = evalExpr vars e
 evalFunc vars (s : stmts) = do 

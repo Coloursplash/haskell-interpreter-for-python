@@ -228,3 +228,11 @@ valToStr x = show x
 
 showType :: (Typeable a) => a -> String
 showType x = show (typeOf x)
+
+showValType :: Val -> String
+showValType (Int _)   = "Int"
+showValType (Float _) = "Float"
+showValType (Str _)   = "Str"
+showValType (List _)  = "List"
+showValType (Bool _)  = "Bool"
+showValType NoneVal   = "None"

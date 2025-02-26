@@ -38,8 +38,7 @@ parseBlock toks = parseBlock' [] (BlockStart : toks)
       (toks', stmt) <- parseStmt toks
       parseBlock' (b ++ [stmt]) toks'
 
--- Did not implement If statements/For statements as we havent fully discussed
--- how to handle those
+-- Still need to add in parsing for Elif statements and For loops
 parseStmt :: Through [Token] ([Token], Stmt)
 parseStmt (Ident x : Delimiter EqDelim : toks) = do
   (toks', expr) <- parseExpr toks
@@ -67,17 +66,22 @@ parseStmt (Keyword WhileTok : toks) = do
 -- when implemented 'elif's will be another if ... else statement
 -- that will be added to the else block
 parseStmt (Keyword If : toks) = do
-  (toks', expr) <- parseExpr toks
-  (toks'', b1) <-
-    checkTok (Delimiter Colon) toks'
+  (toks1, expr) <- parseExpr toks
+  (toks2, b1) <-
+    checkTok (Delimiter Colon) toks1
       >>= checkTok BlockStart
       >>= parseBlock
-  (toks''', b2) <-
-    checkTok (Keyword Else) toks''
-      >>= checkTok (Delimiter Colon)
-      >>= checkTok BlockStart
-      >>= parseBlock
-  Right (toks''', Cond expr b1 b2)
+  case toks2 of 
+    (Keyword Else:toks3) -> do
+      (toks4, b2) <- checkTok (Delimiter Colon) toks3 >>= checkTok BlockStart >>= parseBlock
+      Right (toks4, Cond expr b1 b2)
+    (Keyword Elif:toks3) -> do 
+      (toks4,expr') <- parseExpr toks3
+      (toks4, stmt) <- parseStmt (Keyword If : toks3)
+      Right (toks4, Cond expr b1 [stmt])
+    toks3 -> do 
+      Right (toks3, Cond expr b1 [])
+
 parseStmt (Keyword Return : toks) = do
   (toks', expr) <- parseExpr toks
   Right (toks', Ret expr)

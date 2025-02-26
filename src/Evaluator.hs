@@ -160,7 +160,7 @@ addVals (Int x) (Float y) = Right $ Float (fromIntegral x + y)
 addVals (Float x) (Int y) = Right $ Float (x + fromIntegral y)
 addVals (Str x) (Str y) = Right $ Str (x ++ y)
 addVals (List xs) (List ys) = Right $ List (xs ++ ys)
-addVals x y = Left $ EvaluationError $ TypeError $ "Addition is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+addVals x y = Left $ EvaluationError $ TypeError $ "Addition is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 subVals :: Val -> Val -> Either Error Val
 subVals (Int x) (Int y) = Right $ Int (x - y)
@@ -201,7 +201,7 @@ modVals (Int x) (Int y) = Right $ Int (x `mod` y)
 modVals (Float x) (Int y) = Right $ Float $ doubleMod x (fromIntegral y)
 modVals (Int x) (Float y) = Right $ Float $ doubleMod (fromIntegral x) y
 modVals (Float x) (Float y) = Right $ Float $ doubleMod x y
-modVals x y = Left $ EvaluationError $ TypeError $ "Integer Division is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+modVals x y = Left $ EvaluationError $ TypeError $ "mod is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 doubleMod :: Double -> Double -> Double
 doubleMod x y = x - (fromIntegral (floor (x / y)) * y)

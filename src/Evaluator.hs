@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
-
 module Evaluator (evaluate) where
 
 import Control.Monad (foldM, join)
+import System.IO ( hFlush, stdout )
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (except, runExceptT, throwE)
 import Data.Bits (Bits (xor))
@@ -20,10 +20,10 @@ evalBlock = foldM evalStmt
 
 evalStmt :: VarList -> ThroughIO Stmt VarList
 evalStmt vars (Asgn str e) = do
-  vars' <- except $ evalExpr vars e
+  vars' <- evalExpr vars e
   return $ update str vars' vars
 evalStmt vars stmt@(While e b) = do
-  val <- except $ evalExpr vars e
+  val <- evalExpr vars e
   case val of
     Bool False -> return vars
     Bool True -> do
@@ -31,14 +31,14 @@ evalStmt vars stmt@(While e b) = do
       evalStmt vars' stmt
     x -> throwE (EvaluationError $ TypeError ("Expected type Boolean but got " ++ showType x))
 evalStmt vars (Cond e b1 b2) = do
-  val <- except $ evalExpr vars e
+  val <- evalExpr vars e
   case val of
     Bool True -> do
       evalBlock vars b1
     Bool False -> do
       evalBlock vars b2
 evalStmt vars (ExprStmt e) = do
-  val <- except $ evalExpr vars e
+  val <- evalExpr vars e
   return vars
 evalStmt vars (Print es) = do
   evalPrint es vars []
@@ -47,10 +47,10 @@ evalStmt vars (Print es) = do
     evalPrint :: [Expr] -> VarList -> ThroughIO [Expr] ()
     evalPrint [] vars vs = liftIO $ putStrLn $ unwords (reverse $ map valToStr vs)
     evalPrint (e : es) vars vs = do
-      val <- except $ evalExpr vars e
+      val <- evalExpr vars e
       evalPrint es vars (ValExp val : vs)
 evalStmt vars (ForLoop str e b) = do
-  val <- except $ evalExpr vars e
+  val <- evalExpr vars e
   case val of
     List xs -> do
       evalForLoop str vars xs b
@@ -60,44 +60,46 @@ evalStmt vars (Ret e) = undefined
 evalForLoop :: String -> VarList -> [Expr] -> ThroughIO Block VarList
 evalForLoop _ vars [] _       = return vars 
 evalForLoop str vars (e:es) b = do 
-  val <- except $ evalExpr vars e 
+  val <- evalExpr vars e 
   let vars' = update str val vars in 
     do 
       vars'' <- evalBlock vars' b 
       evalForLoop str vars'' es b 
 
-evalExpr :: VarList -> Through Expr Val
-evalExpr vars (ValExp v) = Right v
+evalExpr :: VarList -> ThroughIO Expr Val
+evalExpr vars (ValExp v) = return v
 evalExpr vars (Identifier name) = do
   case lookup name vars of
-    Just val -> Right val
-    Nothing -> Left (EvaluationError (NameError $ "Variable '" ++ name ++ "' is not defined."))
+    Just val -> return val
+    Nothing -> throwE (EvaluationError (NameError $ "Variable '" ++ name ++ "' is not defined."))
+-- we need to find a way to rewrite this without unsafe perform IO
+-- that might require us to change the entire function to ThroughIO
 evalExpr vars (Input es) = do
-  unsafePerformIO $ runExceptT $ evalInput es vars []
-  where
-    evalInput :: [Expr] -> VarList -> ThroughIO [Expr] Val
-    evalInput [] vars vs = do
-      liftIO $ putStr $ unwords (reverse $ map valToStr vs)
-      inp <- liftIO getLine
+  evalInput es vars 
+  where 
+    evalInput es vars = do 
+      vals <- mapM (evalExpr vars) es
+      -- no matter what i tried, i couldnt get putStr to print before getLine
+      liftIO $ putStr $ unwords (reverse $ map show vals) 
+      liftIO $ hFlush stdout
+      inp <- liftIO getLine 
       liftIO $ putStrLn ""
       return $ Str inp
-    evalInput (e : es) vars vs = do
-      val <- except $ evalExpr vars e
-      evalInput es vars (ValExp val : vs)
+
 -- hard coded the 'int' and 'str' functions 
 -- this could probably 
 evalExpr vars (FunctionCall "int" (e:es))
   | null es = do
     val <- evalExpr vars e
     case val of
-      (Str s) -> Right $ Int $ read s
-      x -> Left $ EvaluationError $ InvalidOperationError ("Cannot perform function 'int' on type '" ++ showType x ++ "'")
-  | otherwise = Left $ EvaluationError $ InvalidArgumentsError ("Function 'int' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
+      (Str s) -> return $ Int $ read s
+      x -> throwE $ EvaluationError $ InvalidOperationError ("Cannot perform function 'int' on type '" ++ showType x ++ "'")
+  | otherwise = throwE $ EvaluationError $ InvalidArgumentsError ("Function 'int' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
 evalExpr vars (FunctionCall "str" (e:es))
   | null es = do
     val <- evalExpr vars e
-    Right $ Str $ show val
-  | otherwise = Left $ EvaluationError $ InvalidArgumentsError ("Function 'str' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
+    return $ Str $ show val
+  | otherwise = throwE $ EvaluationError $ InvalidArgumentsError ("Function 'str' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
 -- this would be easy to write in simple python so later on for simplicity, this could be treated like a normal 
 -- function, but would be pre-computed/parsed
 evalExpr vars (FunctionCall "range" es)
@@ -106,97 +108,97 @@ evalExpr vars (FunctionCall "range" es)
       do
         nums' <- nums
         case nums' of
-          [Int stop] -> Right $ List [ValExp $ Int x | x <- [0..stop-1]]
+          [Int stop] -> return $ List [ValExp $ Int x | x <- [0..stop-1]]
           [Int start, Int stop] -> if stop > start
-            then Right $ List [ValExp $ Int x | x <- [start..stop-1]]
-            else Left $ EvaluationError $ InvalidArgumentsError "In function 'range' the second argument should always be greater than the first"
-          [Int start, Int stop, Int step] -> Right $ List [ValExp $ Int x | x <- [start,start+step..stop-signum step]]
-  | otherwise = Left $ EvaluationError $ InvalidArgumentsError ("Function 'range' takes 1-3 arguments, but " ++ show len ++ " were provided.")
+            then return $ List [ValExp $ Int x | x <- [start..stop-1]]
+            else throwE $ EvaluationError $ InvalidArgumentsError "In function 'range' the second argument should always be greater than the first"
+          [Int start, Int stop, Int step] -> return $ List [ValExp $ Int x | x <- [start,start+step..stop-signum step]]
+  | otherwise = throwE $ EvaluationError $ InvalidArgumentsError ("Function 'range' takes 1-3 arguments, but " ++ show len ++ " were provided.")
   where
     len = length es
 evalExpr vars (FunctionCall s es) = undefined
 evalExpr vars (Add e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  addVals val1 val2
+  except $ addVals val1 val2
 evalExpr vars (Sub e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  subVals val1 val2
+  except $ subVals val1 val2
 evalExpr vars (Mul e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  mulVals val1 val2
+  except $ mulVals val1 val2
 evalExpr vars (Div e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  divVals val1 val2
+  except $ divVals val1 val2
 evalExpr vars (IntDiv e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  intDivVals val1 val2
+  except $ intDivVals val1 val2
 evalExpr vars (Mod e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  modVals val1 val2
+  except $ modVals val1 val2
 evalExpr vars (Pow e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  powVals val1 val2
+  except $ powVals val1 val2
 evalExpr vars (At e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  atVals val1 val2
+  except $ atVals val1 val2
 evalExpr vars (ShiftL e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  shiftLVals val1 val2
+  except $ shiftLVals val1 val2
 evalExpr vars (ShiftR e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  shiftRVals val1 val2
+  except $ shiftRVals val1 val2
 evalExpr vars (AndExp e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  andVals val1 val2
+  except $ andVals val1 val2
 evalExpr vars (Pipe e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  pipeVals val1 val2
+  except $ pipeVals val1 val2
 evalExpr vars (NotExp e1) = do
   val <- evalExpr vars e1
-  notVal val
+  except $ notVal val
 evalExpr vars (Hat e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  hatVals val1 val2
+  except $ hatVals val1 val2
 evalExpr vars (Tilde e) = do
   val <- evalExpr vars e
-  tildeVal val
+  except $ tildeVal val
 evalExpr vars (LessThan e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  lessThanVals val1 val2
+  except $ lessThanVals val1 val2
 evalExpr vars (GreaterThan e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  greaterThanVals val1 val2
+  except $ greaterThanVals val1 val2
 evalExpr vars (LTEq e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  ltEqVals val1 val2
+  except $ ltEqVals val1 val2
 evalExpr vars (GTEq e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  gtEqVals val1 val2
+  except $ gtEqVals val1 val2
 evalExpr vars (Eq e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  eqVals val1 val2
+  except $ eqVals val1 val2
 evalExpr vars (NotEq e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
-  notEqVals val1 val2
+  except $ notEqVals val1 val2
 
 addVals :: Val -> Val -> Either Error Val
 addVals (Int x) (Int y) = Right $ Int (x + y)

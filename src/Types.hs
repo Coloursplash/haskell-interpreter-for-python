@@ -168,6 +168,7 @@ data Val
   | NoneVal
   | List [Expr]
   | Dict [(Expr, Expr)]
+  | Func String [String] Block
   deriving (Eq, Typeable)
 
 instance Show Val where

@@ -19,6 +19,7 @@ runInterpreter input = do
   liftIO $ putStrLn "Finished Tokenisation"
   ast <- except $ parse tokens
   liftIO $ putStrLn "Tokens Parsed\n"
+  liftIO $ print ast
   -- returns varList for now
   liftIO $ putStrLn "Executing...\n--------------"
   varList <- evaluate ast

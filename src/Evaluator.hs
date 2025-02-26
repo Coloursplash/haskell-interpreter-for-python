@@ -56,6 +56,7 @@ evalStmt vars (ForLoop str e b) = do
       evalForLoop str vars xs b
     x -> throwE $ EvaluationError $ InvalidArgumentsError $ "For loop expected iterable type, but got " ++ showType x ++ "."
 evalStmt vars (Ret e) = undefined
+evalStmt vars (FuncDef str strs b) = return $ update str (Func strs b) vars
 
 evalForLoop :: String -> VarList -> [Expr] -> ThroughIO Block VarList
 evalForLoop _ vars [] _       = return vars 
@@ -83,7 +84,6 @@ evalExpr vars (Input es) = do
       liftIO $ putStr $ unwords (reverse $ map show vals) 
       liftIO $ hFlush stdout
       inp <- liftIO getLine 
-      liftIO $ putStrLn ""
       return $ Str inp
 
 -- hard coded the 'int' and 'str' functions 
@@ -116,7 +116,17 @@ evalExpr vars (FunctionCall "range" es)
   | otherwise = throwE $ EvaluationError $ InvalidArgumentsError ("Function 'range' takes 1-3 arguments, but " ++ show len ++ " were provided.")
   where
     len = length es
-evalExpr vars (FunctionCall s es) = undefined
+evalExpr vars (FunctionCall s es) = do 
+  let func = lookup s vars
+  case func of 
+    Just (Func strs b) -> do 
+      vals <- mapM (evalExpr vars) es
+      let vars' = zip strs vals 
+      -- should make custom evalFunc function
+      x <- evalBlock vars' b
+      return NoneVal
+    Just x -> throwE $ EvaluationError $ InvalidOperationError "Cannot invoke non function"
+    Nothing -> throwE $ EvaluationError $ InvalidOperationError $ s ++ " is not defined."
 evalExpr vars (Add e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2

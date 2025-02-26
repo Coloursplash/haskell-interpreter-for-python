@@ -44,6 +44,7 @@ data ParsingError
   | IndentationError String
   | Unexpected (Maybe Token) Token
   | UnknownError
+  | InvalidTypeError String
   deriving (Eq, Show, Typeable)
 
 -- Evaluation errors
@@ -168,7 +169,7 @@ data Val
   | NoneVal
   | List [Expr]
   | Dict [(Expr, Expr)]
-  | Func String [String] Block
+  | Func [String] Block
   deriving (Eq, Typeable)
 
 instance Show Val where
@@ -189,7 +190,7 @@ data Stmt
   | While Expr Block
   | Cond Expr Block Block
   | -- This might be changed later but this is how i currently envision it working
-    FuncDef String [Expr] Block
+    FuncDef String [String] Block
   | ForLoop String Expr Block -- This would be interpreted as for 'string' in 'expr' do 'block' 
                               -- This is Expr in case there is a function call, such as range()
   | ExprStmt Expr

@@ -93,12 +93,22 @@ parseStmt (Keyword Def : Ident funcName : toks) = do
   case expr of
     ValExp (List es) -> do
       (toks''', b) <- parseBlock toks''
-      Right (toks''', FuncDef funcName es b)
+      strs <- getStrings es []
+      Right (toks''', FuncDef funcName strs b)
+        where
+          getStrings :: [Expr] -> Through [String] [String]
+          getStrings [] strs = Right $ reverse strs 
+          getStrings (e:es) strs = 
+            case e of 
+              Identifier x -> getStrings es (x:strs)
+              x -> Left $ ParsingError $ InvalidTypeError $ "Expected type Identifier, but got " ++ showType x ++ "." 
     _ -> Left $ ParsingError UnknownError
+parseStmt (Keyword Def : toks) = Left $ ParsingError $ SyntaxError "Def keyword must be followed by the name of a function" 
 parseStmt (Keyword For : Ident x : Keyword In : toks) = do 
   (toks',expr) <- parseExpr toks 
   (toks'',b) <- checkTok (Delimiter Colon) toks' >>= checkTok BlockStart >>= parseBlock
   Right (toks'', ForLoop x expr b)
+parseStmt (Keyword For : toks) = Left $ ParsingError $ SyntaxError "For keyword must be followed by some form of 'i in ..."
 parseStmt toks = do
   (toks', expr) <- parseExpr toks
   Right (toks', ExprStmt expr)

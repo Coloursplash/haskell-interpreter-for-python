@@ -38,7 +38,7 @@ parseBlock toks = parseBlock' [] (BlockStart : toks)
       (toks', stmt) <- parseStmt toks
       parseBlock' (b ++ [stmt]) toks'
 
--- Still need to add in parsing for Elif statements and For loops
+-- Still need to add in parsing for loops
 parseStmt :: Through [Token] ([Token], Stmt)
 parseStmt (Ident x : Delimiter EqDelim : toks) = do
   (toks', expr) <- parseExpr toks

@@ -71,18 +71,34 @@ evalExpr vars (Input es) = do
       evalInput es vars (ValExp val : vs)
 -- hard coded the 'int' and 'str' functions 
 -- this could probably 
-evalExpr vars (FunctionCall "int" (e:es)) 
-  | null es = do 
+evalExpr vars (FunctionCall "int" (e:es))
+  | null es = do
     val <- evalExpr vars e
-    case val of 
-      (Str s) -> Right $ Int $ read s 
-      x -> Left $ EvaluationError $ InvalidOperationError ("Cannot perform function 'int' on type '" ++ showType x ++ "'") 
+    case val of
+      (Str s) -> Right $ Int $ read s
+      x -> Left $ EvaluationError $ InvalidOperationError ("Cannot perform function 'int' on type '" ++ showType x ++ "'")
   | otherwise = Left $ EvaluationError $ InvalidArgumentsError ("Function 'int' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
 evalExpr vars (FunctionCall "str" (e:es))
-  | null es = do 
-    val <- evalExpr vars e 
+  | null es = do
+    val <- evalExpr vars e
     Right $ Str $ show val
   | otherwise = Left $ EvaluationError $ InvalidArgumentsError ("Function 'str' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
+-- this would be easy to write in simple python so later on for simplicity, this could be treated like a normal 
+-- function, but would be pre-computed/parsed
+evalExpr vars (FunctionCall "range" es)
+  | len > 0 && len <= 3 = do
+    let nums = mapM (evalExpr vars) es in
+      do
+        nums' <- nums
+        case nums' of
+          [Int stop] -> Right $ List [ValExp $ Int x | x <- [0..stop-1]]
+          [Int start, Int stop] -> if stop > start 
+            then Right $ List [ValExp $ Int x | x <- [start..stop-1]] 
+            else Left $ EvaluationError $ InvalidArgumentsError "In function 'range' the second argument should always be greater than the first"
+          [Int start, Int stop, Int step] -> Right $ List [ValExp $ Int x | x <- [start,start+step..stop-signum step]]
+  | otherwise = Left $ EvaluationError $ InvalidArgumentsError ("Function 'range' takes 1-3 arguments, but " ++ show len ++ " were provided.")
+  where
+    len = length es
 evalExpr vars (FunctionCall s es) = undefined
 evalExpr vars (Add e1 e2) = do
   val1 <- evalExpr vars e1

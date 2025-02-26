@@ -189,6 +189,7 @@ data Stmt
   | Cond Expr Block Block
   | -- This might be changed later but this is how i currently envision it working
     FuncDef String [Expr] Block
+  | ForLoop String Expr Block -- This would be interpreted as for 'string' in 'expr' do 'block' 
   | ExprStmt Expr
   | Ret Expr
   | Print [Expr]

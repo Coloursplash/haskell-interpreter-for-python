@@ -49,7 +49,22 @@ evalStmt vars (Print es) = do
     evalPrint (e : es) vars vs = do
       val <- except $ evalExpr vars e
       evalPrint es vars (ValExp val : vs)
+evalStmt vars (ForLoop str e b) = do
+  val <- except $ evalExpr vars e
+  case val of
+    List xs -> do
+      evalForLoop str vars xs b
+    x -> throwE $ EvaluationError $ InvalidArgumentsError $ "For loop expected iterable type, but got " ++ showType x ++ "."
 evalStmt vars (Ret e) = undefined
+
+evalForLoop :: String -> VarList -> [Expr] -> ThroughIO Block VarList
+evalForLoop _ vars [] _       = return vars 
+evalForLoop str vars (e:es) b = do 
+  val <- except $ evalExpr vars e 
+  let vars' = update str val vars in 
+    do 
+      vars'' <- evalBlock vars' b 
+      evalForLoop str vars'' es b 
 
 evalExpr :: VarList -> Through Expr Val
 evalExpr vars (ValExp v) = Right v
@@ -92,8 +107,8 @@ evalExpr vars (FunctionCall "range" es)
         nums' <- nums
         case nums' of
           [Int stop] -> Right $ List [ValExp $ Int x | x <- [0..stop-1]]
-          [Int start, Int stop] -> if stop > start 
-            then Right $ List [ValExp $ Int x | x <- [start..stop-1]] 
+          [Int start, Int stop] -> if stop > start
+            then Right $ List [ValExp $ Int x | x <- [start..stop-1]]
             else Left $ EvaluationError $ InvalidArgumentsError "In function 'range' the second argument should always be greater than the first"
           [Int start, Int stop, Int step] -> Right $ List [ValExp $ Int x | x <- [start,start+step..stop-signum step]]
   | otherwise = Left $ EvaluationError $ InvalidArgumentsError ("Function 'range' takes 1-3 arguments, but " ++ show len ++ " were provided.")

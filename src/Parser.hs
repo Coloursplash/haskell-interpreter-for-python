@@ -95,6 +95,10 @@ parseStmt (Keyword Def : Ident funcName : toks) = do
       (toks''', b) <- parseBlock toks''
       Right (toks''', FuncDef funcName es b)
     _ -> Left $ ParsingError UnknownError
+parseStmt (Keyword For : Ident x : Keyword In : toks) = do 
+  (toks',expr) <- parseExpr toks 
+  (toks'',b) <- checkTok (Delimiter Colon) toks' >>= checkTok BlockStart >>= parseBlock
+  Right (toks'', ForLoop x expr b)
 parseStmt toks = do
   (toks', expr) <- parseExpr toks
   Right (toks', ExprStmt expr)

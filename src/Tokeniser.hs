@@ -105,7 +105,7 @@ tokenise' [] prevIndent _ toks =
   Right (reverse (replicate (prevIndent `div` 4) BlockEnd ++ toks))
 tokenise' inp@(c : cs) prevIndent currIndent toks
   | c == '\n' = handleIndent (length $ takeWhile (== ' ') cs) prevIndent cs toks
-  | isSpace c = handleSpace inp prevIndent currIndent toks
+  | c == ' '  = handleSpace inp prevIndent currIndent toks
   | isDigit c = handleNumber inp prevIndent currIndent toks
   | c == '"' || c == '\'' = handleString inp prevIndent currIndent toks
   | isLetter c = handleIdentifier inp prevIndent currIndent toks
@@ -114,7 +114,7 @@ tokenise' inp@(c : cs) prevIndent currIndent toks
 
 handleSpace :: String -> Int -> Int -> Through [Token] [Token]
 handleSpace inp prevIndent currIndent toks =
-  let (_, rest) = span isSpace inp
+  let (_, rest) = span (== ' ') inp
    in tokenise' rest prevIndent currIndent toks
 
 handleNumber :: String -> Int -> Int -> Through [Token] [Token]

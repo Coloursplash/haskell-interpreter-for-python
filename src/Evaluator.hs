@@ -69,6 +69,20 @@ evalExpr vars (Input es) = do
     evalInput (e : es) vars vs = do
       val <- except $ evalExpr vars e
       evalInput es vars (ValExp val : vs)
+-- hard coded the 'int' and 'str' functions 
+-- this could probably 
+evalExpr vars (FunctionCall "int" (e:es)) 
+  | null es = do 
+    val <- evalExpr vars e
+    case val of 
+      (Str s) -> Right $ Int $ read s 
+      x -> Left $ EvaluationError $ InvalidOperationError ("Cannot perform function 'int' on type '" ++ showType x ++ "'") 
+  | otherwise = Left $ EvaluationError $ InvalidArgumentsError ("Function 'int' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
+evalExpr vars (FunctionCall "str" (e:es))
+  | null es = do 
+    val <- evalExpr vars e 
+    Right $ Str $ show val
+  | otherwise = Left $ EvaluationError $ InvalidArgumentsError ("Function 'str' takes one argument, but " ++ show (length es + 1) ++ " were provided.")
 evalExpr vars (FunctionCall s es) = undefined
 evalExpr vars (Add e1 e2) = do
   val1 <- evalExpr vars e1
@@ -167,7 +181,7 @@ subVals (Int x) (Int y) = Right $ Int (x - y)
 subVals (Float x) (Float y) = Right $ Float (x - y)
 subVals (Int x) (Float y) = Right $ Float (fromIntegral x - y)
 subVals (Float x) (Int y) = Right $ Float (x - fromIntegral y)
-subVals x y = Left $ EvaluationError $ TypeError $ "Subtraction is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+subVals x y = Left $ EvaluationError $ TypeError $ "Subtraction is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 mulVals :: Val -> Val -> Either Error Val
 mulVals (Int x) (Int y) = Right $ Int (x * y)
@@ -178,7 +192,7 @@ mulVals (List xs) (Int y) = Right $ List (concat $ genericReplicate y xs)
 mulVals (Int x) (List ys) = Right $ List (concat $ genericReplicate x ys)
 mulVals (Int x) (Str ys) = Right $ Str (concat $ genericReplicate x ys)
 mulVals (Str xs) (Int y) = Right $ Str (concat $ genericReplicate y xs)
-mulVals x y = Left $ EvaluationError $ TypeError $ "Multiplication is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+mulVals x y = Left $ EvaluationError $ TypeError $ "Multiplication is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 divVals :: Val -> Val -> Either Error Val
 divVals (Int x) (Int y)
@@ -187,14 +201,14 @@ divVals (Int x) (Int y)
 divVals (Float x) (Float y) = Right $ Float (x / y)
 divVals (Int x) (Float y) = Right $ Float (fromIntegral x / y)
 divVals (Float x) (Int y) = Right $ Float (x / fromIntegral y)
-divVals x y = Left $ EvaluationError $ TypeError $ "Division is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+divVals x y = Left $ EvaluationError $ TypeError $ "Division is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 intDivVals :: Val -> Val -> Either Error Val
 intDivVals (Int x) (Int y) = Right $ Int (x `div` y)
 intDivVals (Float x) (Int y) = Right $ Int (truncate x `div` y)
 intDivVals (Int x) (Float y) = Right $ Int $ truncate (fromIntegral x / y)
 intDivVals (Float x) (Float y) = Right $ Int $ truncate (x / y)
-intDivVals x y = Left $ EvaluationError $ TypeError $ "Integer Division is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+intDivVals x y = Left $ EvaluationError $ TypeError $ "Integer Division is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 modVals :: Val -> Val -> Either Error Val
 modVals (Int x) (Int y) = Right $ Int (x `mod` y)
@@ -211,7 +225,7 @@ powVals (Int x) (Int y) = Right $ Int (x ^ y)
 powVals (Float x) (Int y) = Right $ Float (x ** fromIntegral y)
 powVals (Int x) (Float y) = Right $ Float (fromIntegral x ** y)
 powVals (Float x) (Float y) = Right $ Float (x ** y)
-powVals x y = Left $ EvaluationError $ TypeError $ "Exponentiation is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+powVals x y = Left $ EvaluationError $ TypeError $ "Exponentiation is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 atVals :: Val -> Val -> Either Error Val
 atVals = undefined
@@ -224,11 +238,11 @@ shiftRVals = undefined
 
 andVals :: Val -> Val -> Either Error Val
 andVals (Bool x) (Bool y) = Right $ Bool (x && y)
-andVals x y = Left $ EvaluationError $ TypeError $ "Logical AND is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+andVals x y = Left $ EvaluationError $ TypeError $ "Logical AND is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 pipeVals :: Val -> Val -> Either Error Val
 pipeVals (Bool x) (Bool y) = Right $ Bool (x || y)
-pipeVals x y = Left $ EvaluationError $ TypeError $ "Logical OR is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+pipeVals x y = Left $ EvaluationError $ TypeError $ "Logical OR is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 notVal :: Val -> Either Error Val
 notVal (Bool x) = Right $ Bool $ not x
@@ -247,28 +261,28 @@ lessThanVals (Int x) (Int y) = Right $ Bool (x < y)
 lessThanVals (Float x) (Float y) = Right $ Bool (x < y)
 lessThanVals (Int x) (Float y) = Right $ Bool (fromIntegral x < y)
 lessThanVals (Float x) (Int y) = Right $ Bool (x < fromIntegral y)
-lessThanVals x y = Left $ EvaluationError $ TypeError $ "Less than comparison is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+lessThanVals x y = Left $ EvaluationError $ TypeError $ "Less than comparison is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 greaterThanVals :: Val -> Val -> Either Error Val
 greaterThanVals (Int x) (Int y) = Right $ Bool (x > y)
 greaterThanVals (Float x) (Float y) = Right $ Bool (x > y)
 greaterThanVals (Int x) (Float y) = Right $ Bool (fromIntegral x > y)
 greaterThanVals (Float x) (Int y) = Right $ Bool (x > fromIntegral y)
-greaterThanVals x y = Left $ EvaluationError $ TypeError $ "Greater than comparison is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+greaterThanVals x y = Left $ EvaluationError $ TypeError $ "Greater than comparison is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 ltEqVals :: Val -> Val -> Either Error Val
 ltEqVals (Int x) (Int y) = Right $ Bool (x <= y)
 ltEqVals (Float x) (Float y) = Right $ Bool (x <= y)
 ltEqVals (Int x) (Float y) = Right $ Bool (fromIntegral x <= y)
 ltEqVals (Float x) (Int y) = Right $ Bool (x <= fromIntegral y)
-ltEqVals x y = Left $ EvaluationError $ TypeError $ "Less than or equal comparison is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+ltEqVals x y = Left $ EvaluationError $ TypeError $ "Less than or equal comparison is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 gtEqVals :: Val -> Val -> Either Error Val
 gtEqVals (Int x) (Int y) = Right $ Bool (x >= y)
 gtEqVals (Float x) (Float y) = Right $ Bool (x >= y)
 gtEqVals (Int x) (Float y) = Right $ Bool (fromIntegral x >= y)
 gtEqVals (Float x) (Int y) = Right $ Bool (x >= fromIntegral y)
-gtEqVals x y = Left $ EvaluationError $ TypeError $ "Greater than or equal comparison is not supported between types " ++ showType x ++ " and " ++ showType y ++ "."
+gtEqVals x y = Left $ EvaluationError $ TypeError $ "Greater than or equal comparison is not supported between types " ++ showValType x ++ " and " ++ showValType y ++ "."
 
 eqVals :: Val -> Val -> Either Error Val
 eqVals x y = Right $ Bool (x == y)

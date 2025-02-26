@@ -64,11 +64,11 @@ parseTests =
       @?= Right
         [ Cond
             (GTEq (Identifier "x") (ValExp (Int 0)))
-            [Print (ValExp (Str "positive"))]
-            [Print (ValExp (Str "negative"))]
+            [Print [ValExp (Str "positive")]]
+            [Print [ValExp (Str "negative")]]
         ],
     parse [Ident "print", Delimiter LParen, Val (Str "Hello, World!"), Delimiter RParen]
-      @?= Right [Print (ValExp (Str "Hello, World!"))],
+      @?= Right [Print [ValExp (Str "Hello, World!")]],
     parse
       [ Ident "result",
         Delimiter EqDelim,
@@ -116,7 +116,7 @@ additionalParseTests :: [Assertion]
 additionalParseTests =
   [ -- Nested function calls
     parse [Ident "print", Delimiter LParen, Ident "str", Delimiter LParen, Ident "len", Delimiter LParen, Ident "exampleString", Delimiter RParen, Delimiter RParen, Delimiter RParen]
-      @?= Right [Print (FunctionCall "str" [FunctionCall "len" [Identifier "exampleString"]])],
+      @?= Right [Print [FunctionCall "str" [FunctionCall "len" [Identifier "exampleString"]]]],
     -- Multiple nested conditions
     parse
       [ Keyword If,
@@ -159,10 +159,10 @@ additionalParseTests =
             (GreaterThan (Identifier "x") (ValExp (Int 0)))
             [ Cond
                 (LessThan (Identifier "y") (ValExp (Int 10)))
-                [Print (ValExp (Str "a"))]
-                [Print (ValExp (Str "b"))]
+                [Print [ValExp (Str "a")]]
+                [Print [ValExp (Str "b")]]
             ]
-            [Print (ValExp (Str "c"))]
+            [Print [ValExp (Str "c")]]
         ],
     -- Complex arithmetic expression with parentheses
     parse
@@ -298,7 +298,7 @@ parserErrorTests =
         Val (Str "Positive"),
         Delimiter RParen
       ]
-      @?= Left (ParsingError (Unexpected Nothing (Keyword Else))),
+      @?= Left (ParsingError (Unexpected Nothing BlockEnd)),
     -- Left (ParsingError (Unexpected Nothing BlockEnd))?
     -- depends but this error would be much harder to do with the current
     -- implementation

@@ -120,7 +120,7 @@ parseExpr :: Through [Token] ([Token], Expr)
 parseExpr (Ident "input" : Delimiter LParen : toks) = do
   parseIterable (Delimiter LParen) (Delimiter RParen) Input parseExpr [] (Delimiter LParen : toks)
 parseExpr (Ident x : Delimiter LParen : toks) = do
-  parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) parseAtom [] (Delimiter LParen : toks)
+  parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) parseExpr [] (Delimiter LParen : toks)
 parseExpr (Keyword Not : toks) = do
   (toks', comp) <- parseComparison toks
   Right (toks', NotExp comp)

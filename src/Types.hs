@@ -56,7 +56,8 @@ data EvaluationError
   | ZeroDivisionError String
   | RuntimeError String
   | IOError String
-  | InvalidOperation String
+  | InvalidOperationError String
+  | InvalidArgumentsError String
   deriving (Eq, Show, Typeable)
 
 data Token

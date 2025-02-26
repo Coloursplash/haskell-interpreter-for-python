@@ -104,7 +104,7 @@ tokenise' :: String -> Int -> Int -> Through [Token] [Token]
 tokenise' [] prevIndent _ toks =
   Right (reverse (replicate (prevIndent `div` 4) BlockEnd ++ toks))
 tokenise' inp@(c : cs) prevIndent currIndent toks
-  | c == '\n' = handleIndent (length $ takeWhile (== ' ') cs) prevIndent cs toks
+  | c == '\n' = handleIndent cs prevIndent toks
   | c == ' '  = handleSpace inp prevIndent currIndent toks
   | isDigit c = handleNumber inp prevIndent currIndent toks
   | c == '"' || c == '\'' = handleString inp prevIndent currIndent toks
@@ -116,7 +116,6 @@ handleSpace :: String -> Int -> Int -> Through [Token] [Token]
 handleSpace inp prevIndent currIndent toks =
   let (_, rest) = span (== ' ') inp
    in tokenise' rest prevIndent currIndent toks
-
 handleNumber :: String -> Int -> Int -> Through [Token] [Token]
 handleNumber inp prevIndent currIndent toks
   | length (filter (== '.') numStr) > 1 = Left (TokenisationError (BadChar '.'))
@@ -144,13 +143,22 @@ handleOperator inp prevIndent currIndent toks =
         Just token -> tokenise' rest prevIndent currIndent (token : toks)
         Nothing -> Left (TokenisationError (UnrecognizedOperator op))
 
-handleIndent :: Int -> Int -> String -> Through [Token] [Token]
-handleIndent newIndent prevIndent rest toks
+handleIndent :: String -> Int -> Through [Token] [Token]
+handleIndent inp prevIndent toks
   | newIndent > prevIndent = tokenise' rest newIndent newIndent (BlockStart : toks)
   | newIndent < prevIndent =
       let blockEnds = replicate ((prevIndent - newIndent) `div` 4) BlockEnd
        in tokenise' rest newIndent newIndent (blockEnds ++ toks)
   | otherwise = tokenise' rest prevIndent newIndent toks
+  where
+    (newIndent,rest) = getIndent inp
+    getIndent :: String -> (Int,String)
+    getIndent inp
+      | null spaces       = (0,inp)
+      | '\n' == head inp' = getIndent (tail inp')
+      | otherwise         = (length spaces, inp')
+      where
+        (spaces,inp') = span (== ' ') inp
 
 handleString :: String -> Int -> Int -> Through [Token] [Token]
 handleString (closeChar : inp) prevIndent currIndent toks =

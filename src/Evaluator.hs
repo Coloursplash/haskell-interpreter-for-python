@@ -138,10 +138,14 @@ evalExpr vars (FunctionCall s es) = do
   case func of
     Just (Func strs b) -> do
       vals <- mapM (evalExpr vars) es
+      -- need to change this in the future to accomodate global variables
       let vars' = (s, Func strs b) : zip strs vals
       evalFunc vars' b
     Just x -> throwE $ EvaluationError $ InvalidOperationError "Cannot invoke non function"
     Nothing -> throwE $ EvaluationError $ InvalidOperationError $ s ++ " is not defined."
+-- my plan is to code a lot of these in super basic python, which we will then parse and 
+-- store in the list of global variables from the beginning. Currently just hard coding them
+-- to get it working, and then will improve from there.
 evalExpr vars (MethodCall e "get" es)
   | len /= 1 = throwE $ EvaluationError $ InvalidArgumentsError $ "'get' function expects 1 argument, but " ++ show len ++ " were provided"
   | otherwise = do
@@ -161,7 +165,18 @@ evalExpr vars (MethodCall e "get" es)
               | abs n > length cs -> throwE $ EvaluationError $ IndexError $ "tried to access the " ++ show n ++ "th element from a list of length " ++ show (length cs) ++ "."
               | n >= 0 -> return $ Str [cs !! n]
               | otherwise -> return $ Str [cs !! (length cs + n)]
-        x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
+          Dict pairs -> do 
+            let n = lookup (ValExp index) pairs 
+            case n of 
+              Just e -> evalExpr vars e 
+              Nothing -> throwE $ EvaluationError $ IndexError $ "Dictionary does not contain key: " ++ show index
+        x -> case val of 
+            Dict pairs -> do 
+              let n = lookup (ValExp index) pairs 
+              case n of 
+                Just e -> evalExpr vars e 
+                Nothing -> throwE $ EvaluationError $ IndexError $ "Dictionary does not contain key: " ++ show index
+            y -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show y ++ "."
   where
     len = length es
 evalExpr vars (MethodCall e "append" es)

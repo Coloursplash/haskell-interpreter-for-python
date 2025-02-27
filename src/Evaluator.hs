@@ -1,5 +1,6 @@
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
+
 module Evaluator (evaluate) where
 
 import Control.Monad.IO.Class (liftIO)
@@ -8,7 +9,6 @@ import Data.List (genericReplicate, intercalate)
 import Data.Maybe (fromJust)
 import System.IO (hFlush, stdout)
 import Types
-
 
 -- | Evaluates the AST (returns a string for now)
 evaluate :: ThroughIO Block VarList
@@ -41,15 +41,15 @@ evalStmt vars (Cond e b1 b2) = do
       evalBlock vars b1
     Bool False -> do
       evalBlock vars b2
-evalStmt vars (ExprStmt (MethodCall e@(Identifier x) "append" es)) 
-  | len /= 1  = throwE $ EvaluationError $ InvalidArgumentsError $ "'append' function expects 1 argument, but " ++ show len ++ " were provided"
-  | otherwise = do 
-    list <- evalExpr vars e
-    [val] <- mapM (evalExpr vars) es
-    case list of
-      List xs -> return $ update x (List (xs ++ [ValExp val])) vars
-      x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
-  where 
+evalStmt vars (ExprStmt (MethodCall e@(Identifier x) "append" es))
+  | len /= 1 = throwE $ EvaluationError $ InvalidArgumentsError $ "'append' function expects 1 argument, but " ++ show len ++ " were provided"
+  | otherwise = do
+      list <- evalExpr vars e
+      [val] <- mapM (evalExpr vars) es
+      case list of
+        List xs -> return $ update x (List (xs ++ [ValExp val])) vars
+        x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
+  where
     len = length es
 evalStmt vars (ExprStmt e) = do
   val <- evalExpr vars e
@@ -142,37 +142,37 @@ evalExpr vars (FunctionCall s es) = do
       evalFunc vars' b
     Just x -> throwE $ EvaluationError $ InvalidOperationError "Cannot invoke non function"
     Nothing -> throwE $ EvaluationError $ InvalidOperationError $ s ++ " is not defined."
-evalExpr vars (MethodCall e "get" es) 
+evalExpr vars (MethodCall e "get" es)
   | len /= 1 = throwE $ EvaluationError $ InvalidArgumentsError $ "'get' function expects 1 argument, but " ++ show len ++ " were provided"
-  | otherwise = do 
-    val <- evalExpr vars e
-    [index] <- mapM (evalExpr vars) es
-    case index of
-      Int num -> case val of 
-        List xs -> do 
-          let n = fromInteger num
-          if 
-            | abs n > length xs -> throwE $ EvaluationError $ IndexError $ "tried to access the " ++ show n ++ "th element from a list of length " ++ show (length xs) ++ "." 
-            | n >= 0 -> evalExpr vars (xs !! n) 
-            | otherwise -> evalExpr vars (xs !! (length xs + n))
-        Str cs -> do 
-          let n = fromInteger num
-          if 
-            | abs n > length cs -> throwE $ EvaluationError $ IndexError $ "tried to access the " ++ show n ++ "th element from a list of length " ++ show (length cs) ++ "." 
-            | n >= 0 -> return $ Str [cs !! n] 
-            | otherwise -> return $ Str [cs !! (length cs + n)] 
-      x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
-  where 
+  | otherwise = do
+      val <- evalExpr vars e
+      [index] <- mapM (evalExpr vars) es
+      case index of
+        Int num -> case val of
+          List xs -> do
+            let n = fromInteger num
+            if
+              | abs n > length xs -> throwE $ EvaluationError $ IndexError $ "tried to access the " ++ show n ++ "th element from a list of length " ++ show (length xs) ++ "."
+              | n >= 0 -> evalExpr vars (xs !! n)
+              | otherwise -> evalExpr vars (xs !! (length xs + n))
+          Str cs -> do
+            let n = fromInteger num
+            if
+              | abs n > length cs -> throwE $ EvaluationError $ IndexError $ "tried to access the " ++ show n ++ "th element from a list of length " ++ show (length cs) ++ "."
+              | n >= 0 -> return $ Str [cs !! n]
+              | otherwise -> return $ Str [cs !! (length cs + n)]
+        x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
+  where
     len = length es
-evalExpr vars (MethodCall e "append" es) 
-  | len /= 1  = throwE $ EvaluationError $ InvalidArgumentsError $ "'append' function expects 1 argument, but " ++ show len ++ " were provided"
-  | otherwise = do 
-    list <- evalExpr vars e
-    [val] <- mapM (evalExpr vars) es
-    case list of
-      List xs -> return $ List (xs ++ [ValExp val])
-      x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
-  where 
+evalExpr vars (MethodCall e "append" es)
+  | len /= 1 = throwE $ EvaluationError $ InvalidArgumentsError $ "'append' function expects 1 argument, but " ++ show len ++ " were provided"
+  | otherwise = do
+      list <- evalExpr vars e
+      [val] <- mapM (evalExpr vars) es
+      case list of
+        List xs -> return $ List (xs ++ [ValExp val])
+        x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
+  where
     len = length es
 evalExpr vars (Add e1 e2) = do
   val1 <- evalExpr vars e1

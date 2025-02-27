@@ -175,13 +175,13 @@ data Val
 
 instance Show Val where
   show :: Val -> String
-  show (Int i)     = show i
-  show (Float f)   = show f
-  show (Str s)     = s
-  show (Bool b)    = show b
-  show NoneVal     = "None"
-  show (List vs)   = "[" ++ intercalate ", " (map valToStr vs) ++ "]"
-  show (Dict ps)   = "{" ++ intercalate ", " (map (\(k, v) -> show k ++ ": " ++ show v) ps) ++ "}"
+  show (Int i) = show i
+  show (Float f) = show f
+  show (Str s) = s
+  show (Bool b) = show b
+  show NoneVal = "None"
+  show (List vs) = "[" ++ intercalate ", " (map valToStr vs) ++ "]"
+  show (Dict ps) = "{" ++ intercalate ", " (map (\(k, v) -> show k ++ ": " ++ show v) ps) ++ "}"
   show (Func ss b) = "(" ++ intercalate ", " ss ++ ") -> " ++ show b
 
 type Program = Block
@@ -224,12 +224,12 @@ data Expr
   | NotEq Expr Expr
   | Identifier String
   | Input [Expr]
-  | MethodCall Expr String [Expr]  -- Expr is needed here for cases where the object is not assigned to a variable
+  | MethodCall Expr String [Expr] -- Expr is needed here for cases where the object is not assigned to a variable
   | FunctionCall String [Expr]
   deriving (Eq, Show, Typeable)
 
 valToStr :: Expr -> String
-valToStr (ValExp val)   = show val
+valToStr (ValExp val) = show val
 valToStr (Identifier x) = x
 valToStr x = show x
 
@@ -237,9 +237,9 @@ showType :: (Typeable a) => a -> String
 showType x = show (typeOf x)
 
 showValType :: Val -> String
-showValType (Int _)   = "Int"
+showValType (Int _) = "Int"
 showValType (Float _) = "Float"
-showValType (Str _)   = "Str"
-showValType (List _)  = "List"
-showValType (Bool _)  = "Bool"
-showValType NoneVal   = "None"
+showValType (Str _) = "Str"
+showValType (List _) = "List"
+showValType (Bool _) = "Bool"
+showValType NoneVal = "None"

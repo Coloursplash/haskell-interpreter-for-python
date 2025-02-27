@@ -38,7 +38,8 @@ tokeniseTests =
     tokenise "5>=4" @?= Right [Val (Int 5), Operator GTEqOp, Val (Int 4)],
     tokenise "3<=2" @?= Right [Val (Int 3), Operator LTEqOp, Val (Int 2)],
     tokenise "3<=2 # this is a comment" @?= Right [Val (Int 3), Operator LTEqOp, Val (Int 2)],
-    tokenise "3<=2 # this #is# a# #comment" @?= Right [Val (Int 3), Operator LTEqOp, Val (Int 2)]
+    tokenise "3<=2 # this #is# a# #comment" @?= Right [Val (Int 3), Operator LTEqOp, Val (Int 2)],
+    tokenise "import random.randint" @?= Right [Keyword Import, Ident "random", Delimiter Period, Ident "randint"]
   ]
 
 allOpsAndDelimsTests :: [Assertion]

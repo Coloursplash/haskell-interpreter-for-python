@@ -224,6 +224,7 @@ data Expr
   | NotEq Expr Expr
   | Identifier String
   | Input [Expr]
+  | MethodCall Expr String [Expr]  -- Expr is needed here for cases where the object is not assigned to a variable
   | FunctionCall String [Expr]
   deriving (Eq, Show, Typeable)
 

@@ -85,8 +85,6 @@ parseStmt (Keyword Return : toks) = do
   (toks', expr) <- parseExpr toks
   Right (toks', Ret expr)
 parseStmt (Keyword Def : Ident funcName : toks) = do
-  -- A way to get a list of expressions without changing parseIterable/making a
-  -- new helper function
   (toks', expr) <- parseIterable (Delimiter LParen) (Delimiter RParen) (ValExp . List) parseAtom [] toks
   toks'' <- checkTok (Delimiter Colon) toks' >>= checkTok BlockStart
   case expr of
@@ -225,6 +223,10 @@ parseExponent toks = do
 parseAtom :: Through [Token] ([Token], Expr)
 parseAtom (Ident x : Delimiter LParen : toks) = do
   parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) parseExpr [] (Delimiter LParen : toks)
+parseAtom (Ident x : Delimiter Period : Ident y : Delimiter LParen : toks) = do 
+  parseIterable (Delimiter LParen) (Delimiter RParen) (MethodCall (Identifier x) y) parseExpr [] (Delimiter LParen : toks)
+parseAtom (Ident x : Delimiter LSquare : toks) = do 
+  parseIterable (Delimiter LSquare) (Delimiter RSquare) (MethodCall (Identifier x) "get") parseExpr [] (Delimiter LSquare : toks)
 parseAtom (Ident x : toks) = Right (toks, Identifier x)
 parseAtom (Val x : toks) = Right (toks, ValExp x)
 parseAtom (Operator Minus : Val (Int x) : toks) = Right (toks, ValExp (Int (negate x)))

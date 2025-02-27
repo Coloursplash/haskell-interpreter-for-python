@@ -17,7 +17,9 @@ runInterpreter :: ThroughIO String ()
 runInterpreter input = do
   tokens <- except $ tokenise input
   liftIO $ putStrLn "Finished Tokenisation"
+  liftIO $ print tokens
   ast <- except $ parse tokens
+  liftIO $ print ast
   liftIO $ putStrLn "Tokens Parsed\n"
   liftIO $ putStrLn "Executing...\n--------------"
   varList <- evaluate ast

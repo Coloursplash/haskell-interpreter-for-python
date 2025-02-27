@@ -8,6 +8,7 @@ import Data.Char (isSpace, toLower)
 import Data.List (dropWhileEnd)
 import Evaluator (evaluate)
 import Parser (parse)
+import StdLib (initStdLib, finishStdLib)
 import System.Environment (getArgs)
 import System.IO.Error
 import Tokeniser (tokenise)
@@ -54,7 +55,10 @@ main = do
 
   when debug (putStrLn "--------------------------------------------------------------")
   when debug (putStrLn "Starting...\n")
+  
+  initStdLib
   result <- runExceptT $ runInterpreter debug contents
+  finishStdLib
 
   case result of
     Left err -> print err

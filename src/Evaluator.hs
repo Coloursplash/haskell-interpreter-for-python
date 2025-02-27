@@ -41,6 +41,16 @@ evalStmt vars (Cond e b1 b2) = do
       evalBlock vars b1
     Bool False -> do
       evalBlock vars b2
+evalStmt vars (ExprStmt (MethodCall e@(Identifier x) "append" es)) 
+  | len /= 1  = throwE $ EvaluationError $ InvalidArgumentsError $ "'append' function expects 1 argument, but " ++ show len ++ " were provided"
+  | otherwise = do 
+    list <- evalExpr vars e
+    [val] <- mapM (evalExpr vars) es
+    case list of
+      List xs -> return $ update x (List (xs ++ [ValExp val])) vars
+      x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
+  where 
+    len = length es
 evalStmt vars (ExprStmt e) = do
   val <- evalExpr vars e
   return vars
@@ -148,9 +158,19 @@ evalExpr vars (MethodCall e "get" es)
         Str cs -> do 
           let n = fromInteger num
           if 
-            | abs n > length cs -> throwE $ EvaluationError $ IndexError $ "tried to access the " ++ show n ++ "th element from a list of length " ++ show (length xs) ++ "." 
+            | abs n > length cs -> throwE $ EvaluationError $ IndexError $ "tried to access the " ++ show n ++ "th element from a list of length " ++ show (length cs) ++ "." 
             | n >= 0 -> return $ Str [cs !! n] 
             | otherwise -> return $ Str [cs !! (length cs + n)] 
+      x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
+  where 
+    len = length es
+evalExpr vars (MethodCall e "append" es) 
+  | len /= 1  = throwE $ EvaluationError $ InvalidArgumentsError $ "'append' function expects 1 argument, but " ++ show len ++ " were provided"
+  | otherwise = do 
+    list <- evalExpr vars e
+    [val] <- mapM (evalExpr vars) es
+    case list of
+      List xs -> return $ List (xs ++ [ValExp val])
       x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
   where 
     len = length es

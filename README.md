@@ -4,12 +4,23 @@ HIPY is a Python interpreter written in Haskell. It aims to provide a lightweigh
 
 ## Features
 
-- 🚧 (WIP) Parsing of Python source code
-- 🚧 (WIP) Evaluation of Python expressions and statements
-- 🚧 (WIP) Support for basic Python data types (integers, strings, lists, etc.)
-- 🚧 (WIP) Functional and modular design in Haskell
-- 🚧 (WIP) Control flow structures (if-else, loops)
-- 🚧 (WIP) Function definitions and calls
+Planned features:
+
+- ✅ Parsing of Python source code
+- ✅ Evaluation of Python expressions and statements
+- ✅ Support for basic Python data types (integers, strings, booleans etc.)
+- ✅ Support for complex Python data types (lists, dictionaries etc.)
+- ✅ Control flow structures (if/else, while, loops)
+- 🚧 (WIP)  Complex control flow (match, case)
+- 🚧 (WIP) Error handling (try/catch/finally, throw, assert etc.)
+- ✅ Function definitions and calls
+- 🚧 (WIP) Global and local variables
+- 🚧 (WIP) Python standard library
+
+Not planning to implement:
+
+- Object Oriented Programming (class, this, etc.)
+- Concurrency (async, await etc.)
 
 ## Installation
 
@@ -25,7 +36,7 @@ To build HIPY, you will need:
 git clone https://github.com/coloursplash/hipy.git
 cd hipy
 cabal build
-cabal run hipy
+cabal run . -- example.py
 ```
 
 ## Usage
@@ -50,9 +61,6 @@ Run it with:
 ```python
 hipy script.py
 ```
-
-## (Python spec)[https://docs.python.org/3/reference/index.html]
-Read the Python specification by following the link above.
 
 ## License
 HIPY is released under the MIT License. See LICENSE for details.

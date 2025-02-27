@@ -19,8 +19,11 @@ common common-settings
 library
     import: common-settings
     hs-source-dirs: src
-    exposed-modules: Evaluator, Parser, Tokeniser, Types
-    build-depends: base, transformers
+    exposed-modules: Evaluator, Parser, Tokeniser, Types, StdLib
+    build-depends: 
+        base, 
+        transformers, 
+        cpython
     default-language: Haskell2010
 
 executable hipy
@@ -30,9 +33,10 @@ executable hipy
     build-depends:
         base,
         hipy,
-        transformers
+        transformers,
+        cpython
     default-language: Haskell2010
-    other-modules: Evaluator, Parser, Tokeniser, Types
+    other-modules: Evaluator, Parser, Tokeniser, Types, StdLib
 
 common test-common
     import: common-settings
@@ -41,7 +45,8 @@ common test-common
     build-depends:
         tasty >=1.1 && <1.6,
         hipy,
-        transformers
+        transformers,
+        cpython
 
 test-suite hipy-test
     import: test-common
@@ -49,7 +54,8 @@ test-suite hipy-test
     main-is: Spec.hs
     build-depends:
         tasty-hunit >=0.9 && <0.11,
-        transformers
+        transformers,
+        cpython
     other-modules:
         EvaluatorTests,
         ParserTests,

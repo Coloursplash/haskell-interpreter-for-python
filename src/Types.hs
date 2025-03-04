@@ -58,7 +58,7 @@ data EvaluationError
   | KeyError String
   | ZeroDivisionError String
   | RuntimeError String
-  | PythonStdLibRuntimeError String
+  | PythonStdLibRuntimeError String String
   | IOError String
   | InvalidOperationError String
   | InvalidArgumentsError String

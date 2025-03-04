@@ -11,19 +11,18 @@ import System.Timeout (timeout)
 import Tokeniser (tokenise)
 import Types
 import GHC.IO (unsafePerformIO)
+import GHC.Generics (Datatype(moduleName, packageName))
 
-callStdLib :: String -> String -> Through [Val] Val
-callStdLib moduleName funcName args = unsafePerformIO $ do
+callStdLib :: String -> String -> String -> Through [Val] Val
+callStdLib packageName moduleName funcName args = unsafePerformIO $ do
   let pythonCmd = "python3"
-  let formattedArgs = intercalate "," (map valToPython args)
-  let pythonCode = "import " ++ moduleName ++ "; print('result =', repr(" ++ funcFull ++ "(" ++ formattedArgs ++ ")))"
+  let formattedArgs = intercalate "," (map show args)
+  let pythonCode = getPythonCode packageName moduleName funcName formattedArgs
   result <- timeout 2000000 (runPython pythonCmd pythonCode) -- 2-second timeout
   return $ case result of
     Just (Right output) -> parsePythonOutput output
-    Just (Left err) -> Left $ EvaluationError (PythonStdLibRuntimeError err)
+    Just (Left err) -> runtimeError err
     Nothing -> Left $ EvaluationError (Timeout "Python standard library execution timed out.")
-  where
-    funcFull = moduleName ++ "." ++ funcName
 
 runPython :: String -> String -> IO (Either String String)
 runPython cmd code = do
@@ -32,22 +31,27 @@ runPython cmd code = do
     ExitSuccess -> Right (trim stdout)
     ExitFailure _ -> Left (trim stderr)
 
-valToPython :: Val -> String
-valToPython = show
-
 parsePythonOutput :: String -> Either Error Val
 parsePythonOutput s = do
-  tokenised <- tokenise (replace '\'' '"' s)
-  parsed <- parse tokenised
+  parsed <- case tokenise s >>= parse of
+    Left err -> runtimeError $ show err
+    Right block -> Right block
   case unsafePerformIO $ runExceptT $ evaluate parsed of
-    Left block -> unknownError
-    Right varList -> maybe unknownError Right (lookup "result" varList)
+    Left _ -> runtimeError "(HIPY) 'evaluate' returned Left block"
+    Right varList -> maybe (runtimeError "(HIPY) Result was not found in varList after evaluating") Right (lookup "result" varList)
 
-unknownError :: Either Error a
-unknownError = Left $ EvaluationError (PythonStdLibRuntimeError "Unknown error occurred during Python standard library call")
+getPythonCode :: String -> String -> String -> String -> String
+getPythonCode packageName moduleName funcName args = importStr ++
+  "; x = " ++ funcName ++ "(" ++ args ++ ")" ++
+  "; x = x if (isinstance(x, (int,float,complex,list,tuple,range,dict,set,frozenset,bool,bytes,bytearray,memoryview,type(None)))) else repr(str(x))" ++ 
+  "; print('result =', x)"
+  where
+    importStr = if packageName == ""
+      then "import " ++ moduleName
+      else "from " ++ packageName ++ " import " ++ moduleName
 
-replace :: (Eq a) => a -> a -> [a] -> [a]
-replace a b = map $ \c -> if c == a then b else c
+runtimeError :: Through String a
+runtimeError msg = Left $ EvaluationError (PythonStdLibRuntimeError "Error occurred during Python standard library call" msg)
 
 trim :: String -> String
 trim = unwords . words

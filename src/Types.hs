@@ -58,9 +58,11 @@ data EvaluationError
   | KeyError String
   | ZeroDivisionError String
   | RuntimeError String
+  | PythonStdLibRuntimeError String
   | IOError String
   | InvalidOperationError String
   | InvalidArgumentsError String
+  | Timeout String
   deriving (Eq, Show, Typeable)
 
 data Token

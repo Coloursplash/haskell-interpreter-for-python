@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wno-unused-local-binds #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-module Parser (parse, parseExpr, parseStmt, parseIterable) where
+module Parser (parse) where
 
 import GHC.IO (unsafePerformIO)
 import Tokeniser (tokenise)

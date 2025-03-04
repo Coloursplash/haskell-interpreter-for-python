@@ -11,7 +11,7 @@ Planned features:
 - ✅ Support for basic Python data types (integers, strings, booleans etc.)
 - ✅ Support for complex Python data types (lists, dictionaries etc.)
 - ✅ Control flow structures (if/else, while, loops)
-- 🚧 (WIP)  Complex control flow (match, case)
+- 🚧 (WIP) Complex control flow (match, case)
 - 🚧 (WIP) Error handling (try/catch/finally, throw, assert etc.)
 - ✅ Function definitions and calls
 - 🚧 (WIP) Global and local variables

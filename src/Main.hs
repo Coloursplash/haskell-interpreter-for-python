@@ -8,7 +8,6 @@ import Data.Char (isSpace, toLower)
 import Data.List (dropWhileEnd)
 import Evaluator (evaluate)
 import Parser (parse)
-import StdLib (initStdLib, finishStdLib)
 import System.Environment (getArgs)
 import System.IO.Error
 import Tokeniser (tokenise)
@@ -36,7 +35,7 @@ getFileContents (path : debug : _) = do
   result <- liftIO (readFile path)
   case map toLower debug of
     "true" -> return $ Right (True, result)
-    _      -> return $ Right (False, result)
+    _ -> return $ Right (False, result)
 getFileContents (path : _) = do
   result <- liftIO (readFile path)
   return $ Right (False, result)
@@ -50,15 +49,13 @@ main = do
   (debug, contents) <- case fileContents of
     Left err -> error ("File error: " ++ show err)
     Right inner -> case inner of
-        Left err -> error ("Inner error: " ++ show err)
-        Right f -> return f
+      Left err -> error ("Inner error: " ++ show err)
+      Right f -> return f
 
   when debug (putStrLn "--------------------------------------------------------------")
   when debug (putStrLn "Starting...\n")
-  
-  initStdLib
+
   result <- runExceptT $ runInterpreter debug contents
-  finishStdLib
 
   case result of
     Left err -> print err

@@ -143,7 +143,7 @@ evalExpr vars (FunctionCall s es) = do
       evalFunc vars' b
     Just x -> throwE $ EvaluationError $ InvalidOperationError "Cannot invoke non function"
     Nothing -> throwE $ EvaluationError $ InvalidOperationError $ s ++ " is not defined."
--- my plan is to code a lot of these in super basic python, which we will then parse and 
+-- my plan is to code a lot of these in super basic python, which we will then parse and
 -- store in the list of global variables from the beginning. Currently just hard coding them
 -- to get it working, and then will improve from there.
 evalExpr vars (MethodCall e "get" es)
@@ -165,18 +165,18 @@ evalExpr vars (MethodCall e "get" es)
               | abs n > length cs -> throwE $ EvaluationError $ IndexError $ "tried to access the " ++ show n ++ "th element from a list of length " ++ show (length cs) ++ "."
               | n >= 0 -> return $ Str [cs !! n]
               | otherwise -> return $ Str [cs !! (length cs + n)]
-          Dict pairs -> do 
-            let n = lookup (ValExp index) pairs 
-            case n of 
-              Just e -> evalExpr vars e 
+          Dict pairs -> do
+            let n = lookup (ValExp index) pairs
+            case n of
+              Just e -> evalExpr vars e
               Nothing -> throwE $ EvaluationError $ IndexError $ "Dictionary does not contain key: " ++ show index
-        x -> case val of 
-            Dict pairs -> do 
-              let n = lookup (ValExp index) pairs 
-              case n of 
-                Just e -> evalExpr vars e 
-                Nothing -> throwE $ EvaluationError $ IndexError $ "Dictionary does not contain key: " ++ show index
-            y -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show y ++ "."
+        x -> case val of
+          Dict pairs -> do
+            let n = lookup (ValExp index) pairs
+            case n of
+              Just e -> evalExpr vars e
+              Nothing -> throwE $ EvaluationError $ IndexError $ "Dictionary does not contain key: " ++ show index
+          y -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show y ++ "."
   where
     len = length es
 evalExpr vars (MethodCall e "append" es)

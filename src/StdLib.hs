@@ -1,8 +1,10 @@
 module StdLib (callStdLib) where
 
 import Control.Monad.Trans.Except (runExceptT)
-import Data.List (intercalate)
+import Data.List (intercalate, isPrefixOf)
 import Evaluator (evaluate)
+import GHC.Generics (Datatype (moduleName, packageName))
+import GHC.IO (unsafePerformIO)
 import Parser (parse)
 import System.Exit (ExitCode (..))
 import System.IO.Unsafe (unsafePerformIO)
@@ -10,17 +12,19 @@ import System.Process (readProcessWithExitCode)
 import System.Timeout (timeout)
 import Tokeniser (tokenise)
 import Types
-import GHC.IO (unsafePerformIO)
-import GHC.Generics (Datatype(moduleName, packageName))
 
 callStdLib :: String -> String -> String -> Through [Val] Val
 callStdLib packageName moduleName funcName args = unsafePerformIO $ do
   let pythonCmd = "python3"
   let formattedArgs = intercalate "," (map show args)
-  let pythonCode = getPythonCode packageName moduleName funcName formattedArgs
+  let importStr =
+        if packageName == ""
+          then "import " ++ moduleName
+          else "from " ++ packageName ++ " import " ++ moduleName
+  let pythonCode = getPythonCode importStr funcName formattedArgs
   result <- timeout 2000000 (runPython pythonCmd pythonCode) -- 2-second timeout
   return $ case result of
-    Just (Right output) -> parsePythonOutput output
+    Just (Right output) -> parsePythonOutput output funcName
     Just (Left err) -> runtimeError err
     Nothing -> Left $ EvaluationError (Timeout "Python standard library execution timed out.")
 
@@ -31,8 +35,9 @@ runPython cmd code = do
     ExitSuccess -> Right (trim stdout)
     ExitFailure _ -> Left (trim stderr)
 
-parsePythonOutput :: String -> Either Error Val
-parsePythonOutput s = do
+parsePythonOutput :: String -> String -> Either Error Val
+parsePythonOutput "result = CODE-5698308319-9160947241" funcName = Left $ EvaluationError (PythonStdLibNonPrimitive (funcName ++ "()"))
+parsePythonOutput s _ = do
   parsed <- case tokenise s >>= parse of
     Left err -> runtimeError $ show err
     Right block -> Right block
@@ -40,15 +45,22 @@ parsePythonOutput s = do
     Left _ -> runtimeError "(HIPY) 'evaluate' returned Left block"
     Right varList -> maybe (runtimeError "(HIPY) Result was not found in varList after evaluating") Right (lookup "result" varList)
 
-getPythonCode :: String -> String -> String -> String -> String
-getPythonCode packageName moduleName funcName args = importStr ++
-  "; x = " ++ funcName ++ "(" ++ args ++ ")" ++
-  "; x = x if (isinstance(x, (int,float,complex,list,tuple,range,dict,set,frozenset,bool,bytes,bytearray,memoryview,type(None)))) else repr(str(x))" ++ 
-  "; print('result =', x)"
-  where
-    importStr = if packageName == ""
-      then "import " ++ moduleName
-      else "from " ++ packageName ++ " import " ++ moduleName
+getPythonCode :: String -> String -> String -> String
+getPythonCode importStr funcName args =
+  -- | Uses EXTREMELY specific code string to check later for non-primitive error
+  -- i.e. type returned is an object even after str() call so cannot be handled by HIPY
+  -- | NOTE: isinstance does not check for tuple since many custom datatypes have a tuple interface e.g., time.struct_time
+  -- and even if they were returned as tuples, code that requires accessing them as time.tm_year would break
+ importStr
+    ++ "; x = "
+    ++ funcName
+    ++ "("
+    ++ args
+    ++ ")"
+    ++ "; x = x if (isinstance(x, (int,float,complex,list,range,dict,set,frozenset,bool,bytes,bytearray,memoryview,type(None))))"
+    -- ++ "else repr(str(x))"
+    ++ " else 'CODE-5698308319-9160947241' if (repr(x) == str(x)) else '\"' + str(x) + '\"'"
+    ++ "; print('result =', x)"
 
 runtimeError :: Through String a
 runtimeError msg = Left $ EvaluationError (PythonStdLibRuntimeError "Error occurred during Python standard library call" msg)

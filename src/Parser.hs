@@ -55,6 +55,13 @@ parseStmt (Ident x : tk : toks) = case lookup tk parseStmtLookup of
   Nothing -> do
     (toks', expr) <- parseExpr (Ident x : tk : toks)
     Right (toks', ExprStmt expr)
+parseStmt (Keyword ImportTok : toks) = do
+  (toks', mod) <- parseWords toks
+  Right (toks', Import "" mod)
+parseStmt (Keyword From : toks) = do
+  (toks', pac) <- parseWords toks
+  (toks'', mod) <- checkTok (Keyword ImportTok) toks' >>= parseWords
+  Right (toks'', Import pac mod)
 parseStmt (Keyword WhileTok : toks) = do
   (toks', expr) <- parseExpr toks
   (toks'', b) <-
@@ -238,16 +245,29 @@ parseAtom (Delimiter LParen : toks) = do
 parseAtom tks@(Delimiter LSquare : toks) = do
   parseIterable (Delimiter LSquare) (Delimiter RSquare) (ValExp . List) parseAtom [] tks
 parseAtom tks@(Delimiter LBrace : toks) = do
-  parseIterable (Delimiter LBrace) (Delimiter RBrace) (ValExp . Dict) parsePair [] tks
+  parseIterable (Delimiter LBrace) (Delimiter RBrace) (ValExp . Dict) (parsePair (Delimiter Colon)) [] tks
 parseAtom tks = Left (ParsingError $ ExprNotFound $ mHead tks)
 
-parsePair :: Through [Token] ([Token], (Expr, Expr))
-parsePair toks = do
+-- Specific parses
+-- for dict
+parsePair :: Token -> Through [Token] ([Token], (Expr, Expr))
+parsePair sep toks = do
   (toks', key) <- parseAtom toks
   (toks'', value) <-
-    checkTok (Delimiter Colon) toks'
+    checkTok sep toks'
       >>= parseAtom
   Right (toks'', (key, value))
+
+-- for imports
+parseWords :: Through [Token] ([Token], String)
+parseWords (Ident x : toks) = do
+  (toks', xs) <- parseDots [] toks
+  Right (toks', x ++ xs)
+    where
+      parseDots :: [String] -> Through [Token] ([Token], String)
+      parseDots xs (Delimiter Period : Ident x : toks) = parseDots (x : "." : xs) toks
+      parseDots xs toks = Right (toks, concat $ reverse xs)
+parseWords toks = Right (toks, "")
 
 parseIterable :: Token -> Token -> ([a] -> b) -> Through [Token] ([Token], a) -> [a] -> Through [Token] ([Token], b)
 parseIterable startTok endTok eConst func exprs (tok : toks)

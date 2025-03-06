@@ -27,7 +27,7 @@ data Error
 -- File errors for Main.hs
 data FileError
   = NoFilePathProvided
-  | FileNotFound String
+  | FileNotFound String -- UNUSED
   deriving (Eq, Show, Typeable)
 
 -- Tokenization errors
@@ -39,10 +39,10 @@ data TokenisationError
 
 -- Parsing errors
 data ParsingError
-  = StmtNotFound (Maybe Token)
+  = StmtNotFound (Maybe Token) -- UNUSED
   | ExprNotFound (Maybe Token)
-  | UnparsedInput [Token]
-  | SyntaxError String
+  | UnparsedInput [Token] -- UNUSED
+  | SyntaxError String -- UNUSED
   | IndentationError String
   | Unexpected (Maybe Token) Token
   | UnknownError
@@ -53,14 +53,14 @@ data ParsingError
 data EvaluationError
   = TypeError String
   | NameError String
-  | AttributeError String
+  | AttributeError String -- UNUSED
   | IndexError String
-  | KeyError String
-  | ZeroDivisionError String
-  | RuntimeError String
+  | KeyError String -- UNUSED
+  | ZeroDivisionError String -- UNUSED
+  | RuntimeError String -- UNUSED
   | PythonStdLibRuntimeError String String
   | PythonStdLibNonPrimitive String
-  | IOError String
+  | IOError String -- UNUSED
   | InvalidOperationError String
   | InvalidArgumentsError String
   | Timeout String
@@ -95,7 +95,7 @@ data Keyword
   | From
   | Global
   | If
-  | Import
+  | ImportTok
   | In
   | Is
   | Lambda
@@ -200,6 +200,7 @@ data Stmt
   | ExprStmt Expr
   | Ret Expr
   | Print [Expr]
+  | Import String String
   deriving (Eq, Show, Typeable)
 
 data Expr

@@ -77,7 +77,7 @@ keywordTable =
     ("from", Keyword From),
     ("global", Keyword Global),
     ("if", Keyword If),
-    ("import", Keyword Import),
+    ("import", Keyword ImportTok),
     ("in", Keyword In),
     ("is", Keyword Is),
     ("lambda", Keyword Lambda),

@@ -107,7 +107,8 @@ parseTests =
           Asgn "z" (Add (Identifier "x") (Identifier "y"))
         ],
     parse [] @?= Right [],
-    parse [Operator Plus] @?= Left (ParsingError (ExprNotFound (Just (Operator Plus))))
+    parse [Operator Plus] @?= Left (ParsingError (ExprNotFound (Just (Operator Plus)))),
+    parse [Keyword From, Ident "datetime", Keyword ImportTok, Ident "datetime"] @?= Right (Import "datetime" "datetime")
   ]
 
 additionalParseTests :: [Assertion]

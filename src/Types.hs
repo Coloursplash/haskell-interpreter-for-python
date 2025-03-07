@@ -181,7 +181,7 @@ instance Show Val where
   show :: Val -> String
   show (Int i) = show i
   show (Float f) = show f
-  show (Str s) = s
+  show (Str s) = '"' : s ++ "\""
   show (Bool b) = show b
   show NoneVal = "None"
   show (List vs) = "[" ++ intercalate ", " (map valToStr vs) ++ "]"

@@ -11,11 +11,9 @@ HIPY is a Python interpreter written in Haskell. It aims to provide a lightweigh
 - ✅ Support for basic Python data types (integers, strings, booleans etc.)
 - ✅ Support for complex Python data types (lists, dictionaries etc.)
 - ✅ Control flow structures (if/else, while, loops)
-- 🚧 (TODO) Complex control flow (match, case)
+- ✅ Helpful errors
 - ✅ Function definitions and calls
-- 🚧 (TODO) Error handling (try/catch/finally, throw, assert etc.)
-- 🚧 (WIP) Global and local variables
-- 🚧 (WIP) Python standard library
+- ✅ Python standard library
 
 ### Not planning to implement:
 
@@ -23,6 +21,8 @@ HIPY is a Python interpreter written in Haskell. It aims to provide a lightweigh
 - Concurrency (async, await etc.)
 
 ### Notes about implementation:
+
+HIPY will returns short descriptions for the errors it runs into but these do not catch everything due to not implementing certain features. You should therefore only use HIPY to run correct Python code where possible.
 
 The Python standard library has been implemented with a focus on supporting functions that return primitive data types. This means that functions which either 1) return complex objects (e.g., numpy.matrix() creates a numpy.matrix object) or 2) modify variables in place without returning them (e.g., random.shuffle(x) updates x or os.abort()) are currently unsupported. While this limitation restricts the usage of certain libraries—most notably Pandas and NumPy—I’ve consciously chosen not to implement a linker and loader due to the complexity and scope involved. However, the implementation still supports a wide range of highly useful modules, such as random, math, os, time, and crypto, which are now available for use, providing significant functionality for many applications.
 

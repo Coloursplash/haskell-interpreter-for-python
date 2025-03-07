@@ -1,16 +1,13 @@
 module StdLib (callStdLib) where
 
-import Control.Monad.Trans.Except (runExceptT)
-import Data.List (intercalate, isPrefixOf)
-import GHC.Generics (Datatype (moduleName, packageName))
-import GHC.IO (unsafePerformIO)
+import Data.List (intercalate)
 import Parser (parseAtom)
-import System.Exit (ExitCode (..))
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (readProcessWithExitCode)
 import System.Timeout (timeout)
 import Tokeniser (tokenise)
 import Types
+import GHC.IO.Exception (ExitCode(ExitSuccess, ExitFailure))
 
 callStdLib :: String -> String -> String -> Through [Val] Expr
 callStdLib packageName moduleName funcName args = unsafePerformIO $ do
@@ -34,7 +31,7 @@ runPython cmd code = do
     ExitSuccess -> Right (trim stdout)
     ExitFailure _ -> Left (trim stderr)
 
-parsePythonOutput :: String -> String -> Either Error Expr 
+parsePythonOutput :: String -> String -> Either Error Expr
 parsePythonOutput "CODE-5698308319-9160947241" funcName = Left $ EvaluationError (PythonStdLibNonPrimitive (funcName ++ "()"))
 parsePythonOutput s _ = do
   case tokenise s >>= parseAtom of
@@ -43,11 +40,11 @@ parsePythonOutput s _ = do
 
 getPythonCode :: String -> String -> String -> String
 getPythonCode importStr funcName args =
-  -- | Uses EXTREMELY specific code string to check later for non-primitive error
+  -- \| Uses EXTREMELY specific code string to check later for non-primitive error
   -- i.e. type returned is an object even after str() call so cannot be handled by HIPY
-  -- | NOTE: isinstance does not check for tuple since many custom datatypes have a tuple interface e.g., time.struct_time
+  -- \| NOTE: isinstance does not check for tuple since many custom datatypes have a tuple interface e.g., time.struct_time
   -- and even if they were returned as tuples, code that requires accessing them as time.tm_year would break
- importStr
+  importStr
     ++ "; x = "
     ++ funcName
     ++ "("

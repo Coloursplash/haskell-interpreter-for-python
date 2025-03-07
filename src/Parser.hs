@@ -4,7 +4,6 @@
 
 module Parser (parse, parseAtom) where
 
-import GHC.IO (unsafePerformIO)
 import Tokeniser (tokenise)
 import Types
 

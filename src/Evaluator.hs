@@ -6,7 +6,6 @@ module Evaluator (evaluate) where
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (except, throwE)
 import Data.List (genericReplicate, intercalate)
-import Data.Maybe (fromJust)
 import StdLib (callStdLib)
 import System.IO (hFlush, stdout)
 import Types
@@ -46,11 +45,11 @@ evalStmt vars (ExprStmt (FunctionCall n es))
   | f /= "append" = throwE $ EvaluationError $ InvalidArgumentsError $ "Unexpected method"
   | len /= 1 = throwE $ EvaluationError $ InvalidArgumentsError $ "'append' function expects 1 argument, but " ++ show len ++ " were provided"
   | otherwise = do
-    list <- evalExpr vars (Identifier s)
-    [val] <- mapM (evalExpr vars) es
-    case list of
-      List xs -> return $ update s (List (xs ++ [ValExp val])) vars
-      x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
+      list <- evalExpr vars (Identifier s)
+      [val] <- mapM (evalExpr vars) es
+      case list of
+        List xs -> return $ update s (List (xs ++ [ValExp val])) vars
+        x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
   where
     (f, s) = removeFunc n
     len = length es
@@ -155,12 +154,12 @@ evalExpr vars (FunctionCall s es) = do
     -- Method
     Just x -> do
       if f `elem` ["get", "append"]
-        -- for now, just reuse MethodCall code even though Parser never creates a MethodCall expression
+        -- for now, just reuse MethodCall code
         then evalExpr vars (MethodCall (Identifier s) f es)
         else throwE $ EvaluationError $ InvalidOperationError "Cannot invoke non function"
     Nothing -> throwE $ EvaluationError $ InvalidOperationError $ s ++ " is not defined."
   where
-    
+
 -- my plan is to code a lot of these in super basic python, which we will then parse and
 -- store in the list of global variables from the beginning. Currently just hard coding them
 -- to get it working, and then will improve from there.
@@ -293,6 +292,7 @@ evalExpr vars (NotEq e1 e2) = do
 -- Used for imported functions and method calls
 removeFunc :: String -> (String, String)
 removeFunc s = removeFunc' (reverse s) ""
+
 removeFunc' :: String -> String -> (String, String)
 removeFunc' [] spare = ("", spare)
 removeFunc' ('.' : xs) f = (f, reverse xs)

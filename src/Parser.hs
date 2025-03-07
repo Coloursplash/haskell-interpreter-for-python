@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wno-unused-local-binds #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
-module Parser (parse) where
+module Parser (parse, parseAtom) where
 
 import GHC.IO (unsafePerformIO)
 import Tokeniser (tokenise)
@@ -228,13 +228,10 @@ parseExponent toks = do
 
 -- handles lowest level of expressions - strings, ints etc
 parseAtom :: Through [Token] ([Token], Expr)
-parseAtom (Ident x : Delimiter LParen : toks) = do
-  parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall x) parseExpr [] (Delimiter LParen : toks)
-parseAtom (Ident x : Delimiter Period : Ident y : Delimiter LParen : toks) = do
-  parseIterable (Delimiter LParen) (Delimiter RParen) (MethodCall (Identifier x) y) parseExpr [] (Delimiter LParen : toks)
 parseAtom (Ident x : Delimiter LSquare : toks) = do
   parseIterable (Delimiter LSquare) (Delimiter RSquare) (MethodCall (Identifier x) "get") parseExpr [] (Delimiter LSquare : toks)
-parseAtom (Ident x : toks) = Right (toks, Identifier x)
+-- Either imported module.function() or simply identifier
+parseAtom tks@(Ident _ : _) = parsePossibleFunction tks
 parseAtom (Val x : toks) = Right (toks, ValExp x)
 parseAtom (Operator Minus : Val (Int x) : toks) = Right (toks, ValExp (Int (negate x)))
 parseAtom (Operator Minus : Val (Float x) : toks) = Right (toks, ValExp (Float (negate x)))
@@ -247,6 +244,17 @@ parseAtom tks@(Delimiter LSquare : toks) = do
 parseAtom tks@(Delimiter LBrace : toks) = do
   parseIterable (Delimiter LBrace) (Delimiter RBrace) (ValExp . Dict) (parsePair (Delimiter Colon)) [] tks
 parseAtom tks = Left (ParsingError $ ExprNotFound $ mHead tks)
+
+parsePossibleFunction :: Through [Token] ([Token], Expr)
+parsePossibleFunction tks = do
+  (toks, mod) <- parseWords tks
+  case checkTok (Delimiter LParen) toks of
+    Right _ -> case parseIterable (Delimiter LParen) (Delimiter RParen) (FunctionCall mod) parseExpr [] toks of
+      Right f -> Right f
+      Left _ -> do
+        toks' <- checkTok (Delimiter RParen) (tail toks)
+        Right (toks', FunctionCall mod [])
+    Left _ -> Right (toks, Identifier mod)
 
 -- Specific parses
 -- for dict
@@ -263,10 +271,10 @@ parseWords :: Through [Token] ([Token], String)
 parseWords (Ident x : toks) = do
   (toks', xs) <- parseDots [] toks
   Right (toks', x ++ xs)
-    where
-      parseDots :: [String] -> Through [Token] ([Token], String)
-      parseDots xs (Delimiter Period : Ident x : toks) = parseDots (x : "." : xs) toks
-      parseDots xs toks = Right (toks, concat $ reverse xs)
+  where
+    parseDots :: [String] -> Through [Token] ([Token], String)
+    parseDots xs (Delimiter Period : Ident x : toks) = parseDots (x : "." : xs) toks
+    parseDots xs toks = Right (toks, concat $ reverse xs)
 parseWords toks = Right (toks, "")
 
 parseIterable :: Token -> Token -> ([a] -> b) -> Through [Token] ([Token], a) -> [a] -> Through [Token] ([Token], b)

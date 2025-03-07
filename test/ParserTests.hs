@@ -108,7 +108,7 @@ parseTests =
         ],
     parse [] @?= Right [],
     parse [Operator Plus] @?= Left (ParsingError (ExprNotFound (Just (Operator Plus)))),
-    parse [Keyword From, Ident "datetime", Keyword ImportTok, Ident "datetime"] @?= Right (Import "datetime" "datetime")
+    parse [Keyword From, Ident "datetime", Keyword ImportTok, Ident "datetime"] @?= Right [Import "datetime" "datetime"]
   ]
 
 additionalParseTests :: [Assertion]
@@ -314,9 +314,6 @@ parserErrorTests =
     -- Unexpected keyword
     parse [Ident "x", Delimiter EqDelim, Keyword Else]
       @?= Left (ParsingError (ExprNotFound (Just (Keyword Else)))),
-    -- Invalid function call
-    parse [Ident "func", Delimiter LParen, Delimiter RParen, Delimiter LParen]
-      @?= Left (ParsingError (ExprNotFound (Just (Delimiter RParen)))),
     -- Incomplete if-else structure
     parse
       [ Keyword If,

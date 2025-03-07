@@ -7,6 +7,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (except, throwE)
 import Data.List (genericReplicate, intercalate)
 import Data.Maybe (fromJust)
+import StdLib (callStdLib)
 import System.IO (hFlush, stdout)
 import Types
 
@@ -41,15 +42,17 @@ evalStmt vars (Cond e b1 b2) = do
       evalBlock vars b1
     Bool False -> do
       evalBlock vars b2
-evalStmt vars (ExprStmt (MethodCall e@(Identifier x) "append" es))
+evalStmt vars (ExprStmt (FunctionCall n es))
+  | f /= "append" = throwE $ EvaluationError $ InvalidArgumentsError $ "Unexpected method"
   | len /= 1 = throwE $ EvaluationError $ InvalidArgumentsError $ "'append' function expects 1 argument, but " ++ show len ++ " were provided"
   | otherwise = do
-      list <- evalExpr vars e
-      [val] <- mapM (evalExpr vars) es
-      case list of
-        List xs -> return $ update x (List (xs ++ [ValExp val])) vars
-        x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
+    list <- evalExpr vars (Identifier s)
+    [val] <- mapM (evalExpr vars) es
+    case list of
+      List xs -> return $ update s (List (xs ++ [ValExp val])) vars
+      x -> throwE $ EvaluationError $ InvalidOperationError $ "Method 'get' is not supported for type " ++ show x ++ "."
   where
+    (f, s) = removeFunc n
     len = length es
 evalStmt vars (ExprStmt e) = do
   val <- evalExpr vars e
@@ -73,6 +76,7 @@ evalStmt vars (Ret e) = do
   val <- evalExpr vars e
   return [("%return_val%", val)]
 evalStmt vars (FuncDef str strs b) = return $ update str (Func strs b) vars
+evalStmt vars (Import pac mod) = return $ update mod (Module pac mod) vars
 
 evalForLoop :: String -> VarList -> [Expr] -> ThroughIO Block VarList
 evalForLoop _ vars [] _ = return vars
@@ -133,16 +137,30 @@ evalExpr vars (FunctionCall "range" es)
   | otherwise = throwE $ EvaluationError $ InvalidArgumentsError ("Function 'range' takes 1-3 arguments, but " ++ show len ++ " were provided.")
   where
     len = length es
+-- variable methods, user-defined and imported functions
 evalExpr vars (FunctionCall s es) = do
-  let func = lookup s vars
-  case func of
+  -- remove '.function-name' in case its an imported function
+  let (f, s') = removeFunc s
+  case lookup s' vars of
     Just (Func strs b) -> do
       vals <- mapM (evalExpr vars) es
       -- need to change this in the future to accomodate global variables
       let vars' = (s, Func strs b) : zip strs vals
       evalFunc vars' b
-    Just x -> throwE $ EvaluationError $ InvalidOperationError "Cannot invoke non function"
+    Just (Module pac mod) -> do
+      vals <- mapM (evalExpr vars) es
+      case callStdLib pac mod s vals of
+        Left err -> throwE err
+        Right expr -> evalExpr [] expr
+    -- Method
+    Just x -> do
+      if f `elem` ["get", "append"]
+        -- for now, just reuse MethodCall code even though Parser never creates a MethodCall expression
+        then evalExpr vars (MethodCall (Identifier s) f es)
+        else throwE $ EvaluationError $ InvalidOperationError "Cannot invoke non function"
     Nothing -> throwE $ EvaluationError $ InvalidOperationError $ s ++ " is not defined."
+  where
+    
 -- my plan is to code a lot of these in super basic python, which we will then parse and
 -- store in the list of global variables from the beginning. Currently just hard coding them
 -- to get it working, and then will improve from there.
@@ -271,6 +289,14 @@ evalExpr vars (NotEq e1 e2) = do
   val1 <- evalExpr vars e1
   val2 <- evalExpr vars e2
   except $ notEqVals val1 val2
+
+-- Used for imported functions and method calls
+removeFunc :: String -> (String, String)
+removeFunc s = removeFunc' (reverse s) ""
+removeFunc' :: String -> String -> (String, String)
+removeFunc' [] spare = ("", spare)
+removeFunc' ('.' : xs) f = (f, reverse xs)
+removeFunc' (x : xs) f = removeFunc' xs (x : f)
 
 addVals :: Val -> Val -> Either Error Val
 addVals (Int x) (Int y) = Right $ Int (x + y)

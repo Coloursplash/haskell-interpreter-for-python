@@ -39,7 +39,7 @@ tokeniseTests =
     tokenise "3<=2" @?= Right [Val (Int 3), Operator LTEqOp, Val (Int 2)],
     tokenise "3<=2 # this is a comment" @?= Right [Val (Int 3), Operator LTEqOp, Val (Int 2)],
     tokenise "3<=2 # this #is# a# #comment" @?= Right [Val (Int 3), Operator LTEqOp, Val (Int 2)],
-    tokenise "import random.randint" @?= Right [Keyword Import, Ident "random", Delimiter Period, Ident "randint"]
+    tokenise "import random.randint" @?= Right [Keyword ImportTok, Ident "random", Delimiter Period, Ident "randint"]
   ]
 
 allOpsAndDelimsTests :: [Assertion]
@@ -124,7 +124,7 @@ allKeywordsTests =
           Keyword From,
           Keyword Global,
           Keyword If,
-          Keyword Import,
+          Keyword ImportTok,
           Keyword In,
           Keyword Is,
           Keyword Lambda,

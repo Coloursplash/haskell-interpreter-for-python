@@ -174,6 +174,7 @@ data Val
   | List [Expr]
   | Dict [(Expr, Expr)]
   | Func [String] Block
+  | Module String String
   deriving (Eq, Typeable)
 
 instance Show Val where

@@ -2,10 +2,9 @@ module StdLib (callStdLib) where
 
 import Control.Monad.Trans.Except (runExceptT)
 import Data.List (intercalate, isPrefixOf)
-import Evaluator (evaluate)
 import GHC.Generics (Datatype (moduleName, packageName))
 import GHC.IO (unsafePerformIO)
-import Parser (parse)
+import Parser (parseAtom)
 import System.Exit (ExitCode (..))
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (readProcessWithExitCode)
@@ -13,7 +12,7 @@ import System.Timeout (timeout)
 import Tokeniser (tokenise)
 import Types
 
-callStdLib :: String -> String -> String -> Through [Val] Val
+callStdLib :: String -> String -> String -> Through [Val] Expr
 callStdLib packageName moduleName funcName args = unsafePerformIO $ do
   let pythonCmd = "python3"
   let formattedArgs = intercalate "," (map show args)
@@ -35,15 +34,12 @@ runPython cmd code = do
     ExitSuccess -> Right (trim stdout)
     ExitFailure _ -> Left (trim stderr)
 
-parsePythonOutput :: String -> String -> Either Error Val
-parsePythonOutput "result = CODE-5698308319-9160947241" funcName = Left $ EvaluationError (PythonStdLibNonPrimitive (funcName ++ "()"))
+parsePythonOutput :: String -> String -> Either Error Expr 
+parsePythonOutput "CODE-5698308319-9160947241" funcName = Left $ EvaluationError (PythonStdLibNonPrimitive (funcName ++ "()"))
 parsePythonOutput s _ = do
-  parsed <- case tokenise s >>= parse of
-    Left err -> runtimeError $ show err
-    Right block -> Right block
-  case unsafePerformIO $ runExceptT $ evaluate parsed of
-    Left _ -> runtimeError "(HIPY) 'evaluate' returned Left block"
-    Right varList -> maybe (runtimeError "(HIPY) Result was not found in varList after evaluating") Right (lookup "result" varList)
+  case tokenise s >>= parseAtom of
+    Left _ -> runtimeError "(HIPY) Could not parse returned value"
+    Right (_, v) -> Right v
 
 getPythonCode :: String -> String -> String -> String
 getPythonCode importStr funcName args =
@@ -60,7 +56,7 @@ getPythonCode importStr funcName args =
     ++ "; x = x if (isinstance(x, (int,float,complex,list,range,dict,set,frozenset,bool,bytes,bytearray,memoryview,type(None))))"
     -- ++ "else repr(str(x))"
     ++ " else 'CODE-5698308319-9160947241' if (repr(x) == str(x)) else '\"' + str(x) + '\"'"
-    ++ "; print('result =', x)"
+    ++ "; print(x)"
 
 runtimeError :: Through String a
 runtimeError msg = Left $ EvaluationError (PythonStdLibRuntimeError "Error occurred during Python standard library call" msg)

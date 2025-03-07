@@ -187,7 +187,7 @@ instance Show Val where
   show (List vs) = "[" ++ intercalate ", " (map valToStr vs) ++ "]"
   show (Dict ps) = "{" ++ intercalate ", " (map (\(k, v) -> show k ++ ": " ++ show v) ps) ++ "}"
   show (Func ss b) = "(" ++ intercalate ", " ss ++ ") -> " ++ show b
-
+  show (Module pac mod) = "(Module) " ++ pac ++ " : " ++ mod -- Unsure how to format this
 type Program = Block
 
 type Block = [Stmt]
